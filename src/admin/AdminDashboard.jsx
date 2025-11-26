@@ -1,7 +1,10 @@
 import { useState } from "react";
 import {
-  Menu, X, User, Search, Bell,
-  ShoppingBag, Package, TrendingUp, Settings, LogOut
+  Menu, X, User, Bell,
+  PackageSearch, Settings, LogOut,
+  FolderTree,
+  ClipboardList,
+  CreditCard
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import Products from "./Product";
@@ -78,10 +81,10 @@ export default function AdminDashboard() {
             <nav className="space-y-2 px-4">
 
               {[
-                { tab: "category", icon: Package, label: "Category" },   // ← ditambah
-                { tab: "products", icon: ShoppingBag, label: "Products" },
-                { tab: "orders", icon: Package, label: "Orders" },
-                { tab: "transactions", icon: TrendingUp, label: "Transactions" },
+                { tab: "category", icon: FolderTree, label: "Category" },   // ← ditambah
+                { tab: "products", icon: PackageSearch, label: "Products" },
+                { tab: "orders", icon: ClipboardList, label: "Orders" },
+                { tab: "transactions", icon: CreditCard, label: "Transactions" },
                 { tab: "settings", icon: Settings, label: "Settings" },
               ].map((item) => (
                 <button

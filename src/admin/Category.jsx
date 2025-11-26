@@ -5,7 +5,6 @@ import {
   Edit3,
   Filter,
   Search,
-  Tag,
   FolderTree,
   ToggleLeft,
   ToggleRight,
@@ -22,10 +21,6 @@ const Category = () => {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [filterOpen, setFilterOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  // parentFilter values:
-  // - "all" => show all
-  // - "no-parent" => show categories with parent === null
-  // - "<parentId>" => show categories whose parent.id === parentId
   const [parentFilter, setParentFilter] = useState("all");
 
   // ============================
@@ -38,7 +33,6 @@ const Category = () => {
       const data = await res.json();
       const result = Array.isArray(data) ? data : data.data ?? [];
 
-      // Map backend fields (name, description, parent) -> UI fields (nama, deskripsi, parent.nama)
       const mapped = result.map((item) => ({
         id: item.id,
         nama: item.name,
@@ -64,13 +58,10 @@ const Category = () => {
   }, []);
 
   // ============================
-  // derive parent categories list (unique)
+  // PARENT CATEGORIES
   // ============================
   const parentCategories = useMemo(() => {
-    // Parents are categories that have parent === null (i.e., root categories)
-    // Use their id and nama for buttons
     const parents = categories.filter((c) => c.parent === null);
-    // Remove duplicates by id just in case
     const unique = [];
     const seen = new Set();
     for (const p of parents) {
@@ -83,7 +74,7 @@ const Category = () => {
   }, [categories]);
 
   // ============================
-  // FILTER & SEARCH (parent-based)
+  // FILTER & SEARCH
   // ============================
   const filteredCategories = categories.filter((cat) => {
     const matchesSearch = cat.nama
@@ -95,8 +86,7 @@ const Category = () => {
         ? true
         : parentFilter === "no-parent"
         ? cat.parent === null
-        : // parentFilter holds parentId (as number or string). Compare loosely to allow number/string.
-          String(cat.parent?.id) === String(parentFilter);
+        : String(cat.parent?.id) === String(parentFilter);
 
     return matchesSearch && matchesParent;
   });
@@ -156,32 +146,34 @@ const Category = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50 p-6">
+    <div className="min-h-screen bg-[#fffbf8] p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
         {/* HEADER */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2 flex items-center gap-2">
-            <Tag className="text-[#cb5094]" size={32} />
-            Manajemen Kategori
+          <h1 className="text-4xl font-serif text-[#cb5094] mb-3 flex items-center gap-3">
+            <div className="w-12 h-12 bg-gradient-to-br from-[#cb5094] to-[#e570b3] rounded-2xl flex items-center justify-center shadow-lg">
+              <FolderTree className="text-white" size={24} />
+            </div>
+            Category Management
           </h1>
-          <p className="text-gray-600">Kelola kategori produk untuk toko Anda</p>
+          <p className="text-gray-600 text-lg ml-[60px]">Organize your product categories</p>
         </div>
 
         {/* TOOLBAR */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+        <div className="bg-white rounded-3xl shadow-xl p-6 mb-6 border border-gray-100">
           <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
             {/* SEARCH */}
             <div className="relative flex-1 w-full md:w-auto">
               <Search
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"
                 size={20}
               />
               <input
                 type="text"
-                placeholder="Cari kategori..."
+                placeholder="Search categories..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#cb5094] focus:border-transparent"
+                className="w-full pl-12 pr-4 py-3.5 border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-[#cb5094] focus:border-transparent transition-all text-base"
               />
             </div>
 
@@ -190,112 +182,110 @@ const Category = () => {
               {/* FILTER BUTTON */}
               <button
                 onClick={() => setFilterOpen(!filterOpen)}
-                className={`flex items-center gap-2 px-4 py-3 rounded-xl font-medium transition-all ${
+                className={`flex items-center gap-2 px-6 py-3.5 rounded-full font-semibold transition-all shadow-md hover:shadow-lg ${
                   filterOpen
-                    ? "bg-[#cb5094] text-white shadow-lg"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    ? "bg-gradient-to-r from-[#cb5094] to-[#e570b3] text-white"
+                    : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
                 }`}
               >
                 <Filter size={20} />
-                <span className="hidden sm:inline">Filter</span>
+                <span>Filter</span>
               </button>
 
               {/* ADD BUTTON */}
               <button
                 onClick={openAdd}
-                className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-[#cb5094] to-[#d66ba8] text-white rounded-xl font-medium hover:shadow-lg transition-all"
+                className="flex items-center gap-2 px-6 py-3.5 bg-gradient-to-r from-[#cb5094] to-[#e570b3] text-white rounded-full font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-105"
               >
                 <Plus size={20} />
-                <span className="hidden sm:inline">Tambah</span>
+                <span>Add New</span>
               </button>
             </div>
           </div>
 
           {/* FILTER PANEL */}
           {filterOpen && (
-            <div className="mt-4 pt-4 border-t border-gray-200">
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              {categories.length === 0 ? (
+                <p className="text-gray-500 italic text-center">No categories to filter</p>
+              ) : (
+                <div className="flex flex-wrap gap-3">
+                  {/* ALL */}
+                  <button
+                    onClick={() => setParentFilter("all")}
+                    className={`px-5 py-2.5 rounded-full font-semibold transition-all ${
+                      parentFilter === "all"
+                        ? "bg-gradient-to-r from-[#cb5094] to-[#e570b3] text-white shadow-lg"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                  >
+                    All Categories
+                  </button>
 
-          {/* Kalau belum ada kategori → JANGAN munculkan filter apa pun */}
-          {categories.length === 0 ? (
-            <p className="text-gray-500 italic">Belum ada kategori untuk difilter</p>
-            ): (
-            <div className="flex flex-wrap gap-2">
+                  {/* NO PARENT */}
+                  <button
+                    onClick={() => setParentFilter("no-parent")}
+                    className={`px-5 py-2.5 rounded-full font-semibold transition-all ${
+                      parentFilter === "no-parent"
+                        ? "bg-gradient-to-r from-[#cb5094] to-[#e570b3] text-white shadow-lg"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                  >
+                    Root Categories
+                  </button>
 
-          {/* ALL */}
-          <button
-          onClick={() => setParentFilter("all")}
-          className={`px-4 py-2 rounded-lg font-medium transition-all ${
-            parentFilter === "all"
-              ? "bg-[#cb5094] text-white"
-              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-          }`}
-        >
-          Semua
-        </button>
-
-        {/* NO PARENT */}
-        <button
-          onClick={() => setParentFilter("no-parent")}
-          className={`px-4 py-2 rounded-lg font-medium transition-all ${
-            parentFilter === "no-parent"
-              ? "bg-[#cb5094] text-white"
-              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-          }`}
-        >
-          Tanpa Induk
-        </button>
-
-        {/* Parent categories */}
-        {parentCategories.map((pc) => (
-          <button
-            key={pc.id}
-            onClick={() => setParentFilter(pc.id)}
-            className={`px-4 py-2 rounded-lg font-medium transition-all ${
-              String(parentFilter) === String(pc.id)
-                ? "bg-[#cb5094] text-white"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
-          >
-            {pc.nama}
-            </button>
-            ))}
-          </div>
-        )}
-        </div>
-      )}
-
+                  {/* Parent categories */}
+                  {parentCategories.map((pc) => (
+                    <button
+                      key={pc.id}
+                      onClick={() => setParentFilter(pc.id)}
+                      className={`px-5 py-2.5 rounded-full font-semibold transition-all ${
+                        String(parentFilter) === String(pc.id)
+                          ? "bg-gradient-to-r from-[#cb5094] to-[#e570b3] text-white shadow-lg"
+                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      }`}
+                    >
+                      {pc.nama}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* TABLE */}
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+        <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gradient-to-r from-[#cb5094] to-[#d66ba8] text-white">
+              <thead className="bg-gradient-to-r from-[#cb5094] to-[#e570b3] text-white">
                 <tr>
-                  <th className="p-4 text-left font-semibold">Nama Kategori</th>
-                  <th className="p-4 text-left font-semibold">URL Slug</th>
-                  <th className="p-4 text-left font-semibold">Kategori Induk</th>
-                  <th className="p-4 text-left font-semibold">Status</th>
-                  <th className="p-4 text-center font-semibold">Aksi</th>
+                  <th className="p-5 text-left font-semibold text-base">Category Name</th>
+                  <th className="p-5 text-left font-semibold text-base">Description</th>
+                  <th className="p-5 text-left font-semibold text-base">Status</th>
+                  <th className="p-5 text-center font-semibold text-base">Actions</th>
                 </tr>
               </thead>
 
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan="5" className="p-8 text-center">
-                      <div className="flex justify-center items-center gap-2">
-                        <div className="w-6 h-6 border-4 border-[#cb5094] border-t-transparent rounded-full animate-spin"></div>
-                        <span className="text-gray-600">Memuat data...</span>
+                    <td colSpan="5" className="p-12 text-center">
+                      <div className="flex justify-center items-center gap-3">
+                        <div className="w-8 h-8 border-4 border-[#cb5094] border-t-transparent rounded-full animate-spin"></div>
+                        <span className="text-gray-600 text-lg font-medium">Loading data...</span>
                       </div>
                     </td>
                   </tr>
                 ) : filteredCategories.length === 0 ? (
                   <tr>
-                    <td colSpan="5" className="p-8 text-center">
-                      <div className="flex flex-col items-center gap-2 text-gray-500">
-                        <Tag size={48} className="opacity-50" />
-                        <p className="font-medium">Tidak ada kategori ditemukan</p>
+                    <td colSpan="5" className="p-12 text-center">
+                      <div className="flex flex-col items-center gap-4 text-gray-500">
+                        <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center">
+                          <FolderTree size={40} className="opacity-50" />
+                        </div>
+                        <p className="font-semibold text-lg">No categories found</p>
+                        <p className="text-sm">Try adjusting your search or filters</p>
                       </div>
                     </td>
                   </tr>
@@ -303,59 +293,61 @@ const Category = () => {
                   filteredCategories.map((cat, index) => (
                     <tr
                       key={cat.id}
-                      className={`border-t border-gray-100 hover:bg-pink-50 transition-colors ${
+                      className={`border-t border-gray-100 hover:bg-pink-50 transition-all ${
                         index % 2 === 0 ? "bg-white" : "bg-gray-50"
                       }`}
                     >
-                      <td className="p-4">
-                        <div className="flex items-center gap-2">
-                          <Tag className="text-[#cb5094]" size={18} />
-                          <span className="font-medium text-gray-800">{cat.nama}</span>
+                      <td className="p-5">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-gradient-to-br from-[#cb5094] to-[#e570b3] rounded-xl flex items-center justify-center shadow-md">
+                            <FolderTree className="text-white" size={18} />
+                          </div>
+                          <span className="font-semibold text-gray-800 text-base">{cat.nama}</span>
                         </div>
                       </td>
-                      <td className="p-4">
-                        <code className="bg-gray-100 px-3 py-1 rounded-lg text-sm text-gray-700">
-                          {cat.slug}
+                      <td className="p-5">
+                        <code className="bg-gray-100 px-4 py-2 rounded-xl text-sm text-gray-700 font-mono">
+                          /{cat.slug}
                         </code>
                       </td>
-                      <td className="p-4">
+                      <td className="p-5">
                         {cat.parent?.nama ? (
                           <div className="flex items-center gap-2">
-                            <FolderTree className="text-gray-500" size={16} />
-                            <span className="text-gray-700">{cat.parent.nama}</span>
+                            <FolderTree className="text-[#cb5094]" size={18} />
+                            <span className="text-gray-700 font-medium">{cat.parent.nama}</span>
                           </div>
                         ) : (
-                          <span className="text-gray-400 italic">Tidak ada</span>
+                          <span className="text-gray-400 italic">No parent</span>
                         )}
                       </td>
-                      <td className="p-4">
+                      <td className="p-5">
                         {cat.active ? (
-                          <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-100 text-green-700 rounded-full font-medium">
-                            <ToggleRight size={18} />
-                            Aktif
+                          <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-full font-semibold shadow-sm">
+                            <ToggleRight size={20} />
+                            Active
                           </div>
                         ) : (
-                          <div className="inline-flex items-center gap-2 px-3 py-1 bg-red-100 text-red-700 rounded-full font-medium">
-                            <ToggleLeft size={18} />
-                            Nonaktif
+                          <div className="inline-flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-full font-semibold shadow-sm">
+                            <ToggleLeft size={20} />
+                            Inactive
                           </div>
                         )}
                       </td>
-                      <td className="p-4">
+                      <td className="p-5">
                         <div className="flex gap-2 justify-center">
                           <button
                             onClick={() => openEdit(cat)}
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                            title="Edit kategori"
+                            className="p-3 text-blue-600 hover:bg-blue-50 rounded-xl transition-all hover:shadow-md"
+                            title="Edit category"
                           >
-                            <Edit3 size={18} />
+                            <Edit3 size={20} />
                           </button>
                           <button
                             onClick={() => setDeleteConfirm(cat.id)}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Hapus kategori"
+                            className="p-3 text-red-600 hover:bg-red-50 rounded-xl transition-all hover:shadow-md"
+                            title="Delete category"
                           >
-                            <Trash2 size={18} />
+                            <Trash2 size={20} />
                           </button>
                         </div>
                       </td>
@@ -367,7 +359,7 @@ const Category = () => {
           </div>
         </div>
 
-        {/* ADD/EDIT MODAL - Now using separate component */}
+        {/* ADD/EDIT MODAL */}
         <AddCategory
           isOpen={modalOpen}
           onClose={closeModal}
@@ -378,31 +370,31 @@ const Category = () => {
 
         {/* DELETE CONFIRM */}
         {deleteConfirm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-3 bg-red-100 rounded-full">
-                  <Trash2 className="text-red-600" size={24} />
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4 backdrop-blur-sm">
+            <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 transform transition-all">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="p-4 bg-red-100 rounded-2xl">
+                  <Trash2 className="text-red-600" size={28} />
                 </div>
-                <h3 className="text-xl font-bold text-gray-800">Hapus Kategori?</h3>
+                <h3 className="text-2xl font-bold text-gray-800">Delete Category?</h3>
               </div>
 
-              <p className="text-gray-600 mb-6">
-                Apakah Anda yakin ingin menghapus kategori ini? Tindakan ini tidak dapat dibatalkan.
+              <p className="text-gray-600 mb-8 text-base leading-relaxed">
+                Are you sure you want to delete this category? This action cannot be undone and may affect related products.
               </p>
 
-              <div className="flex gap-3">
+              <div className="flex gap-4">
                 <button
                   onClick={() => setDeleteConfirm(null)}
-                  className="flex-1 px-4 py-3 border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
+                  className="flex-1 px-6 py-3.5 border-2 border-gray-300 text-gray-700 rounded-full font-semibold hover:bg-gray-50 transition-all"
                 >
-                  Batal
+                  Cancel
                 </button>
                 <button
                   onClick={deleteCategory}
-                  className="flex-1 px-4 py-3 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 transition-colors"
+                  className="flex-1 px-6 py-3.5 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-full font-semibold hover:shadow-lg transition-all hover:scale-105"
                 >
-                  Ya, Hapus
+                  Yes, Delete
                 </button>
               </div>
             </div>
