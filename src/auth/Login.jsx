@@ -13,45 +13,23 @@ function Notification({ type, message, onClose }) {
 
   const handleClose = () => {
     setIsExiting(true);
-    setTimeout(() => {
-      if (onClose) onClose();
-    }, 300);
+    setTimeout(() => onClose && onClose(), 300);
   };
 
   const configs = {
-    success: {
-      icon: CheckCircle,
-      bgColor: 'from-green-400 to-emerald-500',
-      borderColor: 'border-green-500'
-    },
-    error: {
-      icon: XCircle,
-      bgColor: 'from-red-400 to-rose-500',
-      borderColor: 'border-red-500'
-    }
+    success: { icon: CheckCircle, bgColor: 'from-green-400 to-emerald-500' },
+    error: { icon: XCircle, bgColor: 'from-red-400 to-rose-500' }
   };
-
   const config = configs[type] || configs.success;
   const Icon = config.icon;
 
   return (
-    <div 
-      className={`fixed top-24 right-4 z-[100] transition-all duration-300 ${
-        isExiting ? 'translate-x-[120%] opacity-0' : 'translate-x-0 opacity-100'
-      }`}
-    >
-      <div className={`bg-gradient-to-r ${config.bgColor} text-white rounded-2xl shadow-2xl p-4 min-w-[320px] max-w-md border-2 ${config.borderColor}`}>
+    <div className={`fixed top-24 right-4 z-[100] transition-all duration-300 ${isExiting ? 'translate-x-[120%] opacity-0' : 'translate-x-0 opacity-100'}`}>
+      <div className={`bg-gradient-to-r ${config.bgColor} text-white rounded-2xl shadow-2xl p-4 min-w-[320px] border-2 border-white/30`}>
         <div className="flex items-start space-x-3">
-          <div className="flex-shrink-0 mt-0.5">
-            <Icon className="w-6 h-6" />
-          </div>
-          <div className="flex-1">
-            <p className="text-sm font-medium leading-relaxed">{message}</p>
-          </div>
-          <button
-            onClick={handleClose}
-            className="flex-shrink-0 hover:bg-white/20 rounded-full p-1 transition"
-          >
+          <Icon className="w-6 h-6 flex-shrink-0 mt-0.5" />
+          <p className="text-sm font-medium flex-1">{message}</p>
+          <button onClick={handleClose} className="hover:bg-white/20 rounded-full p-1">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -84,38 +62,57 @@ function Login() {
     e.preventDefault();
 
     if (!email || !password) {
-      showNotification('error', 'Email dan password wajib diisi');
+      showNotification('error', 'Email dan password wajib diisi!');
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://localhost:5000/api/auth/login', {
+      console.log('Login attempt:', email);
+
+      const res = await fetch('http://localhost:5000/api/auth/login', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: email.toLowerCase().trim(),
-          password,
-        }),
+          password
+        })
       });
 
-      const data = await response.json();
+      const data = await res.json();
+      console.log('Response:', data);
 
-      if (response.ok) {
-        showNotification('success', 'Login berhasil! Selamat datang kembali 🎉');
-        
+      if (res.ok) {
+        const token = data.accessToken || data.token;
+        const user = data.user || data.data?.user || data;
+        const role = (user.role || 'CUSTOMER').toUpperCase();
+
+        if (!token) {
+          showNotification('error', 'Token tidak ditemukan!');
+          return;
+        }
+
+        localStorage.setItem('accessToken', token);
+        localStorage.setItem('user', JSON.stringify({ ...user, role }));
+
+        showNotification('success', 'Login berhasil! Mengarahkan...');
+
         setTimeout(() => {
-          window.location.href = '/dashboard';
-        }, 1500);
+          if (role === 'ADMIN') {
+            window.location.href = '/admin/dashboard';
+          } else if (role === 'OWNER') {
+            window.location.href = '/owner/dashboard';
+          } else {
+            window.location.href = '/dashboard';
+          }
+        }, 1200);
       } else {
-        showNotification('error', data.message || 'Login gagal. Silakan coba lagi');
+        showNotification('error', data.message || 'Email atau password salah');
       }
     } catch (err) {
       console.error('Login error:', err);
-      showNotification('error', 'Gagal terhubung ke server. Pastikan backend berjalan');
+      showNotification('error', 'Gagal ter27 ke server. Pastikan backend jalan!');
     } finally {
       setIsLoading(false);
     }
@@ -210,124 +207,54 @@ function Login() {
         </div>
       </nav>
 
-      <div className="relative z-10 w-full max-w-md px-4 pt-24 sm:pt-28 pb-8">
-        <div 
-          className="bg-gradient-to-br from-[#cb5094] to-[#e570b3] rounded-3xl shadow-2xl p-6 sm:p-8 lg:p-12 transition-all duration-1000"
-          style={{
-            opacity: isLoaded ? 1 : 0,
-            transform: isLoaded ? 'translateY(0) scale(1)' : 'translateY(30px) scale(0.95)'
-          }}
-        >
-          <div className="text-center mb-6 sm:mb-8">
-            <h1 className="text-4xl sm:text-5xl font-serif text-white mb-2">
-              Welcome Back!
-            </h1>
-            <p className="text-white/90 text-sm sm:text-base">
-              Silakan login untuk melanjutkan.
-            </p>
+      <div className="relative z-10 w-full max-w-md px-4 pt-24 pb-8">
+        <div className="bg-gradient-to-br from-[#cb5094] to-[#e570b3] rounded-3xl shadow-2xl p-8 transition-all duration-1000"
+          style={{ opacity: isLoaded ? 1 : 0, transform: isLoaded ? 'translateY(0)' : 'translateY(30px)' }}>
+          <div className="text-center mb-8">
+            <h1 className="text-5xl font-serif text-white mb-2">Welcome Back!</h1>
+            <p className="text-white/90">Login to continue</p>
           </div>
 
-          <div className="space-y-4 sm:space-y-5">
-            <div className="relative">
-              <div className="flex items-center bg-white rounded-full px-4 sm:px-5 py-3 sm:py-4 shadow-lg hover:shadow-xl transition-all duration-300">
-                <Mail className="w-5 h-5 text-[#cb5094] mr-3 flex-shrink-0" />
-                <input
-                  type="email"
-                  placeholder="Email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="flex-1 outline-none text-gray-700 placeholder-gray-400 bg-transparent text-sm sm:text-base"
-                />
-              </div>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="flex items-center bg-white rounded-full px-5 py-4 shadow-lg">
+              <Mail className="w-5 h-5 text-[#cb5094] mr-3" />
+              <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)}
+                className="flex-1 outline-none text-gray-700" required />
             </div>
 
-            <div className="relative">
-              <div className="flex items-center bg-white rounded-full px-4 sm:px-5 py-3 sm:py-4 shadow-lg hover:shadow-xl transition-all duration-300">
-                <Lock className="w-5 h-5 text-[#cb5094] mr-3 flex-shrink-0" />
-                <input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="flex-1 outline-none text-gray-700 placeholder-gray-400 bg-transparent text-sm sm:text-base"
-                  onKeyPress={(e) => e.key === 'Enter' && handleSubmit(e)}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="ml-2 text-[#cb5094] hover:text-[#b04580] transition-colors flex-shrink-0"
-                >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
+            <div className="flex items-center bg-white rounded-full px-5 py-4 shadow-lg">
+              <Lock className="w-5 h-5 text-[#cb5094] mr-3" />
+              <input type={showPassword ? "text" : "password"} placeholder="Password" value={password} onChange={e => setPassword(e.target.value)}
+                className="flex-1 outline-none text-gray-700" required />
+              <button type="button" onClick={() => setShowPassword(!showPassword)}>
+                {showPassword ? <EyeOff className="w-5 h-5 text-[#cb5094]" /> : <Eye className="w-5 h-5 text-[#cb5094]" />}
+              </button>
             </div>
 
-            <div className="text-right">
-              <a 
-                href="/forgot-password" 
-                className="text-white text-xs sm:text-sm hover:underline transition-all"
-              >
-                Lupa Password?
-              </a>
-            </div>
+            <a href="/forgot-password" className="block text-right text-white text-sm hover:underline">
+              Forgot Password?
+            </a>
 
-            <button
-              onClick={handleSubmit}
-              disabled={isLoading}
-              className="w-full bg-[#7a2c5e] hover:bg-[#5d1f46] text-white font-bold py-3 sm:py-4 rounded-full text-base sm:text-lg transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
-            >
-              {isLoading ? (
-                <span className="flex items-center justify-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Logging in...
-                </span>
-              ) : 'LOGIN'}
+            <button type="submit" disabled={isLoading}
+              className="w-full bg-[#7a2c5e] hover:bg-[#5d1f46] text-white font-bold py-4 rounded-full transition-all disabled:opacity-70">
+              {isLoading ? 'Logging in...' : 'LOGIN'}
             </button>
+          </form>
 
-            <div className="text-center mt-4 sm:mt-6">
-              <p className="text-white text-xs sm:text-sm">
-                Belum punya akun?{' '}
-                <a 
-                  href="/signup" 
-                  className="font-bold underline hover:text-white/80 transition-all"
-                >
-                  Sign up di sini
-                </a>
-              </p>
-            </div>
-          </div>
+          <p className="text-center text-white mt-6 text-sm">
+            Belum punya akun? <a href="/signup" className="font-bold underline">Sign up</a>
+          </p>
         </div>
       </div>
 
       <style>{`
-        @keyframes float {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-20px); }
-        }
-        @keyframes float-delayed {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-15px); }
-        }
-        @keyframes progress {
-          from { width: 100%; }
-          to { width: 0%; }
-        }
-        .animate-float {
-          animation: float 6s ease-in-out infinite;
-        }
-        .animate-float-delayed {
-          animation: float-delayed 8s ease-in-out infinite;
-          animation-delay: 1s;
-        }
-        .animate-progress {
-          animation: progress 4s linear forwards;
-        }
+        @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-20px)} }
+        @keyframes progress { from { width: 100% } to { width: 0% } }
+        .animate-float { animation: float 6s ease-in-out infinite; }
+        .animate-progress { animation: progress 4s linear forwards; }
       `}</style>
     </div>
   );
 }
 
-export default Login;
+export default Login

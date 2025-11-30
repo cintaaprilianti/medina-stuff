@@ -355,7 +355,9 @@ function Home() {
                   href="https://instagram.com/medina_stuff" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="group flex flex-col items-center justify-center p-4 bg-gradient-to-br from-[#fffbf8] to-white rounded-2xl hover:from-[#cb5094] hover:to-[#e570b3] transition-all duration-300 transform hover:scale-105 hover:-translate-y-1 shadow-md hover:shadow-xl border border-gray-100"
+                  className="group flex flex-col items-center justify-center p-4 bg-white rounded-2xl border border-gray-100 shadow-md transition-all duration-300 transform 
+                  hover:scale-105 hover:-translate-y-1 hover:shadow-xl hover:bg-gradient-to-br hover:from-[#002296] hover:via-[#C0007A] hover:via-[#EA0C5F] hover:to-[#F6BA00]"
+
                 >
                   <Instagram className="w-7 h-7 text-[#cb5094] group-hover:text-white transition-colors mb-2" />
                   <span className="text-xs text-gray-600 group-hover:text-white transition-colors font-medium">Instagram</span>
