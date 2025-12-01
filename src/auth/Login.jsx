@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Mail, Lock, Eye, EyeOff, Menu, X, CheckCircle, XCircle } from 'lucide-react';
 
-// === NOTIFICATION COMPONENT (sama) ===
 function Notification({ type, message, onClose }) {
   const [isExiting, setIsExiting] = useState(false);
 
@@ -59,7 +58,6 @@ function Login() {
     setNotification({ type, message, id: Date.now() });
   };
 
-  // === HANYA SATU HANDLE SUBMIT YANG BENAR ===
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -122,7 +120,6 @@ function Login() {
 
   return (
     <div className="min-h-screen bg-[#fffbf8] relative overflow-hidden flex items-center justify-center">
-      {/* Notification */}
       {notification && (
         <Notification
           key={notification.id}
@@ -132,7 +129,6 @@ function Login() {
         />
       )}
 
-      {/* Background Decorations */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div 
           className="absolute left-0 bottom-0 w-[500px] h-[500px] bg-gradient-to-br from-[#cb5094] to-[#e570b3] rounded-tr-full transition-all duration-1000"
@@ -154,7 +150,6 @@ function Login() {
         <div className="absolute bottom-[30%] right-[20%] w-12 h-12 rounded-full bg-[#cb5094]/15 animate-float-delayed"></div>
       </div>
 
-      {/* Navigation Bar */}
       <nav className="fixed top-0 w-full z-50 bg-white/90 backdrop-blur-sm shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16 sm:h-20">
@@ -179,11 +174,11 @@ function Login() {
             </a>
 
             <div className="hidden lg:flex items-center space-x-4">
-              <a href="/signup" className="text-[#cb5094] font-bold text-sm tracking-wide hover:underline transition-all">
-                SIGN UP
-              </a>
               <a href="/login" className="bg-[#cb5094] text-white px-6 py-2 rounded-full font-bold text-sm tracking-wide hover:bg-[#b04580] transition-all">
                 LOGIN
+              </a>
+              <a href="/signup" className="text-[#cb5094] font-bold text-sm tracking-wide hover:underline transition-all">
+                SIGN UP
               </a>
             </div>
 
@@ -201,18 +196,17 @@ function Login() {
             }`}
           >
             <div className="space-y-1">
-              <a href="/signup" className="block py-3 px-4 text-gray-700 hover:text-[#cb5094] hover:bg-[#fffbf8] rounded-lg font-bold text-sm transition-all">
-                SIGN UP
-              </a>
               <a href="/login" className="block py-3 px-4 text-[#cb5094] font-semibold bg-[#fffbf8] rounded-lg transition-all">
                 LOGIN
+              </a>
+              <a href="/signup" className="block py-3 px-4 text-gray-700 hover:text-[#cb5094] hover:bg-[#fffbf8] rounded-lg font-bold text-sm transition-all">
+                SIGN UP
               </a>
             </div>
           </div>
         </div>
       </nav>
 
-      {/* Login Card */}
       <div className="relative z-10 w-full max-w-md px-4 pt-24 pb-8">
         <div className="bg-gradient-to-br from-[#cb5094] to-[#e570b3] rounded-3xl shadow-2xl p-8 transition-all duration-1000"
           style={{ opacity: isLoaded ? 1 : 0, transform: isLoaded ? 'translateY(0)' : 'translateY(30px)' }}>
@@ -263,4 +257,4 @@ function Login() {
   );
 }
 
-export default Login;
+export default Login
