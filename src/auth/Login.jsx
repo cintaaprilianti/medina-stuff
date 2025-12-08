@@ -24,12 +24,12 @@ function Notification({ type, message, onClose }) {
   const Icon = config.icon;
 
   return (
-    <div className={`fixed top-24 right-4 z-[100] transition-all duration-300 ${isExiting ? 'translate-x-[120%] opacity-0' : 'translate-x-0 opacity-100'}`}>
-      <div className={`bg-gradient-to-r ${config.bgColor} text-white rounded-2xl shadow-2xl p-4 min-w-[320px] border-2 border-white/30`}>
+    <div className={`fixed top-6 left-1/2 -translate-x-1/2 z-[100] transition-all duration-300 ${isExiting ? 'translate-y-[-150%] opacity-0' : 'translate-y-0 opacity-100'}`}>
+      <div className={`bg-gradient-to-r ${config.bgColor} text-white rounded-2xl shadow-2xl p-4 min-w-[320px] max-w-md border-2 border-white/30`}>
         <div className="flex items-start space-x-3">
           <Icon className="w-6 h-6 flex-shrink-0 mt-0.5" />
           <p className="text-sm font-medium flex-1">{message}</p>
-          <button onClick={handleClose} className="hover:bg-white/20 rounded-full p-1">
+          <button onClick={handleClose} className="hover:bg-white/20 rounded-full p-1 transition-all">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -112,14 +112,14 @@ function Login() {
       }
     } catch (err) {
       console.error('Login error:', err);
-      showNotification('error', 'Gagal ter27 ke server. Pastikan backend jalan!');
+      showNotification('error', 'Gagal terhubung ke server. Pastikan backend jalan!');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#fffbf8] relative overflow-hidden flex items-center justify-center">
+    <div className="min-h-screen bg-gradient-to-br from-pink-200 via-pink-100 to-pink-50 relative overflow-hidden flex items-center justify-center">
       {notification && (
         <Notification
           key={notification.id}
@@ -131,26 +131,25 @@ function Login() {
 
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div 
-          className="absolute left-0 bottom-0 w-[500px] h-[500px] bg-gradient-to-br from-[#cb5094] to-[#e570b3] rounded-tr-full transition-all duration-1000"
+          className="absolute -left-40 top-0 w-[600px] h-[600px] bg-pink-300/40 rounded-full blur-3xl transition-all duration-1000"
           style={{
-            opacity: isLoaded ? 0.95 : 0,
+            opacity: isLoaded ? 1 : 0,
             transform: isLoaded ? 'scale(1)' : 'scale(0.8)'
           }}
         ></div>
         
         <div 
-          className="absolute right-0 top-0 w-[400px] h-[400px] bg-gradient-to-bl from-[#cb5094] to-[#e570b3] rounded-bl-full transition-all duration-1000 delay-200"
+          className="absolute -right-40 bottom-0 w-[600px] h-[600px] bg-pink-200/40 rounded-full blur-3xl transition-all duration-1000 delay-200"
           style={{
-            opacity: isLoaded ? 0.85 : 0,
+            opacity: isLoaded ? 1 : 0,
             transform: isLoaded ? 'scale(1)' : 'scale(0.8)'
           }}
         ></div>
 
-        <div className="absolute top-[20%] left-[15%] w-16 h-16 rounded-full bg-[#cb5094]/20 animate-float"></div>
-        <div className="absolute bottom-[30%] right-[20%] w-12 h-12 rounded-full bg-[#cb5094]/15 animate-float-delayed"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-pink-300/30 rounded-full blur-3xl"></div>
       </div>
 
-      <nav className="fixed top-0 w-full z-50 bg-white/90 backdrop-blur-sm shadow-sm">
+      <nav className="fixed top-0 w-full z-50 bg-white/70 backdrop-blur-xl shadow-sm border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16 sm:h-20">
             <a href="/" className="flex items-center space-x-2 sm:space-x-3 group">
@@ -174,17 +173,17 @@ function Login() {
             </a>
 
             <div className="hidden lg:flex items-center space-x-4">
-              <a href="/login" className="bg-[#cb5094] text-white px-6 py-2 rounded-full font-bold text-sm tracking-wide hover:bg-[#b04580] transition-all">
+              <a href="/login" className="bg-[#cb5094] text-white px-6 py-2.5 rounded-full font-semibold text-sm tracking-wide hover:bg-[#b04580] hover:shadow-lg transition-all duration-300">
                 LOGIN
               </a>
-              <a href="/signup" className="text-[#cb5094] font-bold text-sm tracking-wide hover:underline transition-all">
+              <a href="/signup" className="text-[#cb5094] font-semibold text-sm tracking-wide hover:underline transition-all">
                 SIGN UP
               </a>
             </div>
 
             <button 
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="lg:hidden p-2 hover:bg-[#fffbf8] rounded-lg transition-all duration-300"
+              className="lg:hidden p-2 hover:bg-pink-50 rounded-lg transition-all duration-300"
             >
               {isMenuOpen ? <X className="w-6 h-6 text-[#cb5094]" /> : <Menu className="w-6 h-6 text-[#cb5094]" />}
             </button>
@@ -196,10 +195,10 @@ function Login() {
             }`}
           >
             <div className="space-y-1">
-              <a href="/login" className="block py-3 px-4 text-[#cb5094] font-semibold bg-[#fffbf8] rounded-lg transition-all">
+              <a href="/login" className="block py-3 px-4 text-[#cb5094] font-semibold bg-pink-50 rounded-lg transition-all">
                 LOGIN
               </a>
-              <a href="/signup" className="block py-3 px-4 text-gray-700 hover:text-[#cb5094] hover:bg-[#fffbf8] rounded-lg font-bold text-sm transition-all">
+              <a href="/signup" className="block py-3 px-4 text-gray-700 hover:text-[#cb5094] hover:bg-pink-50 rounded-lg font-semibold text-sm transition-all">
                 SIGN UP
               </a>
             </div>
@@ -208,53 +207,78 @@ function Login() {
       </nav>
 
       <div className="relative z-10 w-full max-w-md px-4 pt-24 pb-8">
-        <div className="bg-gradient-to-br from-[#cb5094] to-[#e570b3] rounded-3xl shadow-2xl p-8 transition-all duration-1000"
+        <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/60 p-8 sm:p-10 transition-all duration-1000"
           style={{ opacity: isLoaded ? 1 : 0, transform: isLoaded ? 'translateY(0)' : 'translateY(30px)' }}>
           <div className="text-center mb-8">
-            <h1 className="text-5xl font-serif text-white mb-2">Welcome Back!</h1>
-            <p className="text-white/90">Login to continue</p>
+            <h1 className="text-4xl sm:text-5xl font-bold text-[#cb5094] mb-2">Welcome Back!</h1>
+            <p className="text-gray-600 text-sm font-medium">Masuk untuk melanjutkan</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="flex items-center bg-white rounded-full px-5 py-4 shadow-lg">
-              <Mail className="w-5 h-5 text-[#cb5094] mr-3" />
-              <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)}
-                className="flex-1 outline-none text-gray-700" required />
+          <div className="space-y-5">
+            <div className="relative">
+              <div className="flex items-center bg-white border-2 border-gray-100 rounded-2xl px-5 py-4 shadow-sm hover:shadow-md hover:border-pink-200 transition-all duration-300 focus-within:border-[#cb5094] focus-within:ring-4 focus-within:ring-pink-100">
+                <Mail className="w-5 h-5 text-[#cb5094] mr-3" />
+                <input 
+                  type="email" 
+                  placeholder="Alamat Email" 
+                  value={email} 
+                  onChange={e => setEmail(e.target.value)}
+                  className="flex-1 outline-none text-gray-700 placeholder:text-gray-400 font-medium" 
+                />
+              </div>
             </div>
 
-            <div className="flex items-center bg-white rounded-full px-5 py-4 shadow-lg">
-              <Lock className="w-5 h-5 text-[#cb5094] mr-3" />
-              <input type={showPassword ? "text" : "password"} placeholder="Password" value={password} onChange={e => setPassword(e.target.value)}
-                className="flex-1 outline-none text-gray-700" required />
-              <button type="button" onClick={() => setShowPassword(!showPassword)}>
-                {showPassword ? <EyeOff className="w-5 h-5 text-[#cb5094]" /> : <Eye className="w-5 h-5 text-[#cb5094]" />}
-              </button>
+            <div className="relative">
+              <div className="flex items-center bg-white border-2 border-gray-100 rounded-2xl px-5 py-4 shadow-sm hover:shadow-md hover:border-pink-200 transition-all duration-300 focus-within:border-[#cb5094] focus-within:ring-4 focus-within:ring-pink-100">
+                <Lock className="w-5 h-5 text-[#cb5094] mr-3" />
+                <input 
+                  type={showPassword ? "text" : "password"} 
+                  placeholder="Kata Sandi" 
+                  value={password} 
+                  onChange={e => setPassword(e.target.value)}
+                  className="flex-1 outline-none text-gray-700 placeholder:text-gray-400 font-medium" 
+                />
+                <button 
+                  type="button" 
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="hover:bg-pink-50 rounded-lg p-1.5 transition-all"
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5 text-[#cb5094]" /> : <Eye className="w-5 h-5 text-[#cb5094]" />}
+                </button>
+              </div>
             </div>
 
-            <a href="/forgot-password" className="block text-right text-white text-sm hover:underline">
-              Forgot Password?
+            <a href="/forgot-password" className="block text-right text-[#cb5094] text-sm font-semibold hover:underline transition-all">
+              Lupa Kata Sandi?
             </a>
 
-            <button type="submit" disabled={isLoading}
-              className="w-full bg-[#7a2c5e] hover:bg-[#5d1f46] text-white font-bold py-4 rounded-full transition-all disabled:opacity-70">
-              {isLoading ? 'Logging in...' : 'LOGIN'}
+            <button 
+              onClick={handleSubmit}
+              disabled={isLoading}
+              className="w-full bg-gradient-to-r from-[#cb5094] to-[#e570b3] hover:from-[#b04580] hover:to-[#d460a2] text-white font-bold py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98]"
+            >
+              {isLoading ? 'Memproses...' : 'MASUK'}
             </button>
-          </form>
+          </div>
 
-          <p className="text-center text-white mt-6 text-sm">
-            Belum punya akun? <a href="/signup" className="font-bold underline">Sign up</a>
+          <p className="text-center text-gray-600 mt-6 text-sm font-medium">
+            Belum punya akun? <a href="/signup" className="text-[#cb5094] font-bold hover:underline transition-all">Daftar sekarang</a>
           </p>
         </div>
       </div>
 
       <style>{`
-        @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-20px)} }
         @keyframes progress { from { width: 100% } to { width: 0% } }
-        .animate-float { animation: float 6s ease-in-out infinite; }
         .animate-progress { animation: progress 4s linear forwards; }
+        
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
+        
+        * {
+          font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
       `}</style>
     </div>
   );
 }
 
-export default Login
+export default Login;

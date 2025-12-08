@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Search, FolderTree, Check, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, FolderTree, X, Tag, CheckCircle, XCircle, Sparkles } from 'lucide-react';
 import { categoryAPI } from '../utils/api';
 
 function CategoryManagement() {
@@ -24,7 +24,6 @@ function CategoryManagement() {
     try {
       setLoading(true);
       const res = await categoryAPI.getAll(true);
-
       const data = Array.isArray(res) ? res : res.data || res || [];
       setCategories(data);
     } catch (error) {
@@ -100,150 +99,301 @@ function CategoryManagement() {
     cat.slug?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const activeCount = categories.filter(c => c.aktif).length;
+  const inactiveCount = categories.length - activeCount;
+
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-6">
+      {/* Header Section */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Kelola Kategori</h1>
-          <p className="text-gray-600">Atur kategori produk Medina Stuff</p>
+          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+            <div className="w-12 h-12 bg-gradient-to-br from-[#cb5094] to-[#e570b3] rounded-2xl flex items-center justify-center shadow-lg">
+              <FolderTree className="w-6 h-6 text-white" />
+            </div>
+            Kelola Kategori
+          </h1>
+          <p className="text-gray-600 mt-2 ml-15">Atur kategori produk di toko Anda</p>
         </div>
         <button
           onClick={() => setShowForm(true)}
-          className="bg-gradient-to-r from-[#cb5094] to-[#e570b3] text-white px-6 py-3 rounded-xl font-bold hover:shadow-xl flex items-center gap-2"
+          className="bg-gradient-to-r from-[#cb5094] to-[#e570b3] text-white px-6 py-3 rounded-xl font-bold hover:shadow-xl transition-all flex items-center gap-2 group"
         >
-          <Plus className="w-5 h-5" /> Tambah Kategori
+          <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform" />
+          Tambah Kategori
         </button>
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-md">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 text-white shadow-xl">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-blue-100 text-sm font-medium">Total Kategori</p>
+              <p className="text-4xl font-bold mt-2">{categories.length}</p>
+            </div>
+            <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur">
+              <Tag className="w-8 h-8" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-6 text-white shadow-xl">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-green-100 text-sm font-medium">Kategori Aktif</p>
+              <p className="text-4xl font-bold mt-2">{activeCount}</p>
+            </div>
+            <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur">
+              <CheckCircle className="w-8 h-8" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-gray-500 to-gray-600 rounded-2xl p-6 text-white shadow-xl">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-100 text-sm font-medium">Kategori Nonaktif</p>
+              <p className="text-4xl font-bold mt-2">{inactiveCount}</p>
+            </div>
+            <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur">
+              <XCircle className="w-8 h-8" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Search Bar */}
+      <div className="relative">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
         <input
           type="text"
-          placeholder="Cari kategori..."
+          placeholder="Cari kategori berdasarkan nama atau slug..."
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
-          className="w-full pl-12 pr-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#cb5094]"
+          className="w-full pl-12 pr-4 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#cb5094] focus:border-transparent transition-all shadow-sm"
         />
       </div>
 
+      {/* Form Modal */}
       {showForm && (
-        <div className="bg-white rounded-2xl shadow-xl p-8 border-2 border-[#cb5094]/20">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold">
-              {editingCategory ? 'Edit' : 'Tambah'} Kategori
-            </h2>
-            <button onClick={handleCancelForm} className="text-gray-500 hover:text-gray-700">
-              <X className="w-6 h-6" />
-            </button>
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="sticky top-0 bg-gradient-to-r from-[#cb5094] to-[#e570b3] px-8 py-6 flex justify-between items-center rounded-t-3xl">
+              <div>
+                <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                  <Sparkles className="w-6 h-6" />
+                  {editingCategory ? 'Edit Kategori' : 'Tambah Kategori Baru'}
+                </h2>
+                <p className="text-white/80 text-sm mt-1">
+                  {editingCategory ? 'Perbarui informasi kategori' : 'Buat kategori produk baru'}
+                </p>
+              </div>
+              <button 
+                onClick={handleCancelForm} 
+                className="text-white hover:bg-white/20 p-2 rounded-lg transition-all"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Form Content */}
+            <form onSubmit={handleSubmit} className="p-8 space-y-6">
+              {/* Nama Kategori */}
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                  <Tag className="w-4 h-4 text-[#cb5094]" />
+                  Nama Kategori <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.nama}
+                  onChange={handleNamaChange}
+                  placeholder="Contoh: Gamis, Hijab, Mukena"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#cb5094] focus:border-transparent transition-all"
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-1">Nama kategori akan otomatis menghasilkan slug</p>
+              </div>
+
+              {/* Slug */}
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                  Slug (URL) <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={formData.slug}
+                    onChange={e => setFormData({ ...formData, slug: e.target.value })}
+                    placeholder="gamis-syari"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl font-mono text-sm focus:outline-none focus:ring-2 focus:ring-[#cb5094] focus:border-transparent transition-all"
+                    required
+                  />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-mono">
+                    /kategori/{formData.slug || '...'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Deskripsi */}
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                  Deskripsi (Opsional)
+                </label>
+                <textarea
+                  value={formData.deskripsi}
+                  onChange={e => setFormData({ ...formData, deskripsi: e.target.value })}
+                  placeholder="Jelaskan tentang kategori ini..."
+                  rows="4"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#cb5094] focus:border-transparent transition-all resize-none"
+                />
+              </div>
+
+              {/* Status Aktif */}
+              <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl border-2 border-gray-200">
+                <input
+                  type="checkbox"
+                  id="aktif-checkbox"
+                  checked={formData.aktif}
+                  onChange={e => setFormData({ ...formData, aktif: e.target.checked })}
+                  className="w-5 h-5 text-[#cb5094] rounded focus:ring-2 focus:ring-[#cb5094]"
+                />
+                <label htmlFor="aktif-checkbox" className="flex-1 cursor-pointer">
+                  <span className="font-bold text-gray-800">Status Aktif</span>
+                  <p className="text-xs text-gray-500">Kategori aktif akan tampil di toko</p>
+                </label>
+                {formData.aktif ? (
+                  <CheckCircle className="w-5 h-5 text-green-500" />
+                ) : (
+                  <XCircle className="w-5 h-5 text-gray-400" />
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-4">
+                <button 
+                  type="submit" 
+                  className="flex-1 bg-gradient-to-r from-[#cb5094] to-[#e570b3] text-white py-4 rounded-xl font-bold hover:shadow-xl transition-all transform hover:scale-105"
+                >
+                  {editingCategory ? '💾 Update Kategori' : '✨ Simpan Kategori'}
+                </button>
+                <button 
+                  type="button" 
+                  onClick={handleCancelForm} 
+                  className="flex-1 bg-gray-200 text-gray-700 py-4 rounded-xl font-bold hover:bg-gray-300 transition-all"
+                >
+                  Batal
+                </button>
+              </div>
+            </form>
           </div>
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label className="block font-bold mb-2">Nama Kategori *</label>
-              <input
-                type="text"
-                value={formData.nama}
-                onChange={handleNamaChange}
-                className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#cb5094]"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block font-bold mb-2">Slug *</label>
-              <input
-                type="text"
-                value={formData.slug}
-                onChange={e => setFormData({ ...formData, slug: e.target.value })}
-                className="w-full px-4 py-3 border rounded-xl font-mono text-sm"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block font-bold mb-2">Deskripsi</label>
-              <textarea
-                value={formData.deskripsi}
-                onChange={e => setFormData({ ...formData, deskripsi: e.target.value })}
-                rows="3"
-                className="w-full px-4 py-3 border rounded-xl"
-              />
-            </div>
-
-            <div className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                checked={formData.aktif}
-                onChange={e => setFormData({ ...formData, aktif: e.target.checked })}
-                className="w-5 h-5 text-[#cb5094] rounded"
-              />
-              <span>Kategori aktif</span>
-            </div>
-
-            <div className="flex gap-4">
-              <button type="submit" className="flex-1 bg-gradient-to-r from-[#cb5094] to-[#e570b3] text-white py-3 rounded-xl font-bold">
-                {editingCategory ? 'Update' : 'Simpan'}
-              </button>
-              <button type="button" onClick={handleCancelForm} className="flex-1 bg-gray-200 py-3 rounded-xl font-bold">
-                Batal
-              </button>
-            </div>
-          </form>
         </div>
       )}
 
-      {/* Daftar Kategori */}
+      {/* Categories Grid */}
       <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
         {loading ? (
-          <div className="py-20 text-center">
-            <div className="w-16 h-16 border-4 border-[#cb5094] border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <div className="flex items-center justify-center py-20">
+            <div className="text-center">
+              <div className="w-16 h-16 border-4 border-[#cb5094]/30 border-t-[#cb5094] rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-gray-600 font-medium">Memuat kategori...</p>
+            </div>
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-20">
-            <FolderTree className="w-20 h-20 text-gray-300 mx-auto mb-4" />
-            <p className="text-xl font-bold text-gray-600">
-              {searchQuery ? 'Kategori tidak ditemukan' : 'Belum ada kategori'}
+            <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <FolderTree className="w-12 h-12 text-gray-300" />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-800 mb-2">
+              {searchQuery ? 'Kategori Tidak Ditemukan' : 'Belum Ada Kategori'}
+            </h3>
+            <p className="text-gray-600 mb-6">
+              {searchQuery 
+                ? 'Coba kata kunci lain atau hapus filter pencarian' 
+                : 'Mulai dengan menambahkan kategori pertama'}
             </p>
+            {!searchQuery && (
+              <button
+                onClick={() => setShowForm(true)}
+                className="bg-gradient-to-r from-[#cb5094] to-[#e570b3] text-white px-8 py-3 rounded-xl font-bold hover:shadow-xl transition-all"
+              >
+                Tambah Kategori Pertama
+              </button>
+            )}
           </div>
         ) : (
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-4 text-left font-bold text-gray-700">Nama</th>
-                <th className="px-6 py-4 text-left font-bold text-gray-700">Slug</th>
-                <th className="px-6 py-4 text-left font-bold text-gray-700">Status</th>
-                <th className="px-6 py-4 text-center font-bold text-gray-700">Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map(cat => (
-                <tr key={cat.id} className="border-t hover:bg-gray-50">
-                  <td className="px-6 py-4 font-medium">{cat.nama}</td>
-                  <td className="px-6 py-4">
-                    <code className="bg-gray-100 px-2 py-1 rounded text-sm">{cat.slug}</code>
-                  </td>
-                  <td className="px-6 py-4 text-center">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
+            {filtered.map(cat => (
+              <div 
+                key={cat.id} 
+                className="bg-gradient-to-br from-white to-gray-50 border-2 border-gray-200 rounded-2xl p-6 hover:shadow-xl transition-all duration-300 group hover:-translate-y-1"
+              >
+                {/* Header */}
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold text-gray-900 mb-1 group-hover:text-[#cb5094] transition-colors">
+                      {cat.nama}
+                    </h3>
+                    <code className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded font-mono">
+                      {cat.slug}
+                    </code>
+                  </div>
+                  <div className="flex-shrink-0">
                     {cat.aktif ? (
-                      <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold">Aktif</span>
+                      <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold">
+                        <CheckCircle className="w-3 h-3" />
+                        Aktif
+                      </span>
                     ) : (
-                      <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs font-bold">Nonaktif</span>
+                      <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs font-bold">
+                        <XCircle className="w-3 h-3" />
+                        Nonaktif
+                      </span>
                     )}
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <button onClick={() => handleEdit(cat)} className="text-blue-600 hover:bg-blue-50 p-2 rounded mx-1">
-                      <Edit2 className="w-5 h-5" />
-                    </button>
-                    <button onClick={() => handleDelete(cat.id, cat.nama)} className="text-red-600 hover:bg-red-50 p-2 rounded mx-1">
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </div>
+                </div>
+
+                {/* Deskripsi */}
+                {cat.deskripsi && (
+                  <p className="text-sm text-gray-600 mb-4 line-clamp-2">
+                    {cat.deskripsi}
+                  </p>
+                )}
+
+                {/* Actions */}
+                <div className="flex gap-2 pt-4 border-t border-gray-200">
+                  <button 
+                    onClick={() => handleEdit(cat)} 
+                    className="flex-1 flex items-center justify-center gap-2 bg-blue-50 text-blue-600 py-2 rounded-lg font-bold hover:bg-blue-100 transition-all"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                    Edit
+                  </button>
+                  <button 
+                    onClick={() => handleDelete(cat.id, cat.nama)} 
+                    className="flex-1 flex items-center justify-center gap-2 bg-red-50 text-red-600 py-2 rounded-lg font-bold hover:bg-red-100 transition-all"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Hapus
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </div>
+
+      {/* Footer Info */}
+      {!loading && filtered.length > 0 && (
+        <div className="bg-gradient-to-r from-[#cb5094]/10 to-[#e570b3]/10 rounded-2xl p-6 text-center border-2 border-[#cb5094]/20">
+          <p className="text-gray-700">
+            Menampilkan <span className="font-bold text-[#cb5094]">{filtered.length}</span> dari{' '}
+            <span className="font-bold text-[#cb5094]">{categories.length}</span> kategori
+          </p>
+        </div>
+      )}
     </div>
   );
 }
