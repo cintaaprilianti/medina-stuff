@@ -15,25 +15,25 @@ function Notification({ type, message, onClose }) {
   };
 
   const configs = {
-    success: { icon: CheckCircle, bgColor: 'from-green-400 to-emerald-500', borderColor: 'border-green-500' },
-    error: { icon: XCircle, bgColor: 'from-red-400 to-rose-500', borderColor: 'border-red-500' },
-    warning: { icon: AlertCircle, bgColor: 'from-yellow-400 to-orange-500', borderColor: 'border-yellow-500' },
+    success: { icon: CheckCircle, bgColor: 'from-green-400 to-emerald-500' },
+    error: { icon: XCircle, bgColor: 'from-red-400 to-rose-500' },
+    warning: { icon: AlertCircle, bgColor: 'from-yellow-400 to-orange-500' },
   };
 
   const config = configs[type] || configs.success;
   const Icon = config.icon;
 
   return (
-    <div className={`fixed top-24 right-4 z-[9999] transition-all duration-300 ${isExiting ? 'translate-x-[120%] opacity-0' : 'translate-x-0 opacity-100'}`}>
-      <div className={`bg-gradient-to-r ${config.bgColor} text-white rounded-2xl shadow-2xl p-5 min-w-[340px] max-w-md border-2 ${config.borderColor}`}>
+    <div className={`fixed top-6 left-1/2 -translate-x-1/2 z-[100] transition-all duration-300 ${isExiting ? 'translate-y-[-150%] opacity-0' : 'translate-y-0 opacity-100'}`}>
+      <div className={`bg-gradient-to-r ${config.bgColor} text-white rounded-2xl shadow-2xl p-4 min-w-[320px] max-w-md border-2 border-white/30`}>
         <div className="flex items-start space-x-3">
-          <Icon className="w-7 h-7 flex-shrink-0 mt-0.5" />
-          <p className="flex-1 text-base font-semibold leading-relaxed">{message}</p>
-          <button onClick={handleClose} className="hover:bg-white/20 rounded-full p-2 transition-all flex-shrink-0">
+          <Icon className="w-6 h-6 flex-shrink-0 mt-0.5" />
+          <p className="text-sm font-medium flex-1">{message}</p>
+          <button onClick={handleClose} className="hover:bg-white/20 rounded-full p-1 transition-all">
             <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="mt-4 h-1.5 bg-white/30 rounded-full overflow-hidden">
+        <div className="mt-3 h-1 bg-white/30 rounded-full overflow-hidden">
           <div className="h-full bg-white rounded-full animate-progress"></div>
         </div>
       </div>
@@ -120,7 +120,6 @@ function SignUp() {
       if (res.ok) {
         showNotification('success', 'Pendaftaran berhasil! 🎉 Silakan cek email untuk kode verifikasi');
 
-        // Pastikan data.user dan data.user.id ada
         if (data.user && data.user.id) {
           setTimeout(() => {
             const verifyUrl = `/verify?userId=${data.user.id}&email=${encodeURIComponent(email.toLowerCase().trim())}`;
@@ -161,7 +160,7 @@ function SignUp() {
   };
 
   return (
-    <div className="min-h-screen bg-[#fffbf8] relative overflow-hidden flex items-center justify-center">
+    <div className="min-h-screen bg-gradient-to-br from-pink-300 via-pink-200 to-white relative overflow-hidden flex items-center justify-center">
       {notification && (
         <Notification
           key={notification.id}
@@ -173,18 +172,15 @@ function SignUp() {
 
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div 
-          className="absolute left-0 bottom-0 w-[500px] h-[500px] bg-gradient-to-br from-[#cb5094] to-[#e570b3] rounded-tr-full transition-all duration-1000"
-          style={{ opacity: isLoaded ? 0.95 : 0, transform: isLoaded ? 'scale(1)' : 'scale(0.8)' }}
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-white/60 rounded-full blur-3xl"
+          style={{
+            opacity: isLoaded ? 1 : 0,
+            transform: isLoaded ? 'translate(-50%, -50%) scale(1)' : 'translate(-50%, -50%) scale(0.8)'
+          }}
         ></div>
-        <div 
-          className="absolute right-0 top-0 w-[400px] h-[400px] bg-gradient-to-bl from-[#cb5094] to-[#e570b3] rounded-bl-full transition-all duration-1000 delay-200"
-          style={{ opacity: isLoaded ? 0.85 : 0, transform: isLoaded ? 'scale(1)' : 'scale(0.8)' }}
-        ></div>
-        <div className="absolute top-[20%] left-[15%] w-16 h-16 rounded-full bg-[#cb5094]/20 animate-float"></div>
-        <div className="absolute bottom-[30%] right-[20%] w-12 h-12 rounded-full bg-[#cb5094]/15 animate-float-delayed"></div>
       </div>
 
-      <nav className="fixed top-0 w-full z-50 bg-white/90 backdrop-blur-sm shadow-sm">
+      <nav className="fixed top-0 w-full z-50 bg-white/70 backdrop-blur-xl shadow-sm border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16 sm:h-20">
             <a href="/" className="flex items-center space-x-2 sm:space-x-3 group">
@@ -208,28 +204,32 @@ function SignUp() {
             </a>
 
             <div className="hidden lg:flex items-center space-x-4">
-              <a href="/login" className="text-[#cb5094] font-bold text-sm tracking-wide hover:underline transition-all">
+              <a href="/login" className="text-[#cb5094] font-semibold text-sm tracking-wide hover:underline transition-all">
                 LOGIN
               </a>
-              <a href="/signup" className="bg-[#cb5094] text-white px-6 py-2 rounded-full font-bold text-sm tracking-wide hover:bg-[#b04580] transition-all">
+              <a href="/signup" className="bg-[#cb5094] text-white px-6 py-2.5 rounded-full font-semibold text-sm tracking-wide hover:bg-[#b04580] hover:shadow-lg transition-all duration-300">
                 SIGN UP
               </a>
             </div>
 
             <button 
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="lg:hidden p-2 hover:bg-[#fffbf8] rounded-lg transition-all duration-300"
+              className="lg:hidden p-2 hover:bg-pink-50 rounded-lg transition-all duration-300"
             >
               {isMenuOpen ? <X className="w-6 h-6 text-[#cb5094]" /> : <Menu className="w-6 h-6 text-[#cb5094]" />}
             </button>
           </div>
 
-          <div className={`lg:hidden overflow-hidden transition-all duration-500 ${isMenuOpen ? 'max-h-64 opacity-100 pb-4' : 'max-h-0 opacity-0'}`}>
+          <div 
+            className={`lg:hidden overflow-hidden transition-all duration-500 ${
+              isMenuOpen ? 'max-h-64 opacity-100 pb-4' : 'max-h-0 opacity-0'
+            }`}
+          >
             <div className="space-y-1">
-              <a href="/login" className="block py-3 px-4 text-gray-700 hover:text-[#cb5094] hover:bg-[#fffbf8] rounded-lg font-bold text-sm transition-all">
+              <a href="/login" className="block py-3 px-4 text-gray-700 hover:text-[#cb5094] hover:bg-pink-50 rounded-lg font-semibold text-sm transition-all">
                 LOGIN
               </a>
-              <a href="/signup" className="block py-3 px-4 text-[#cb5094] font-semibold bg-[#fffbf8] rounded-lg transition-all">
+              <a href="/signup" className="block py-3 px-4 text-[#cb5094] font-semibold bg-pink-50 rounded-lg transition-all">
                 SIGN UP
               </a>
             </div>
@@ -237,52 +237,98 @@ function SignUp() {
         </div>
       </nav>
 
-      <div className="relative z-10 w-full max-w-md px-4 pt-24 sm:pt-28 pb-8">
-        <div 
-          className="bg-gradient-to-br from-[#cb5094] to-[#e570b3] rounded-3xl shadow-2xl p-6 sm:p-8 lg:p-12 transition-all duration-1000"
-          style={{ opacity: isLoaded ? 1 : 0, transform: isLoaded ? 'translateY(0) scale(1)' : 'translateY(30px) scale(0.95)' }}
-        >
-          <div className="text-center mb-6 sm:mb-8">
-            <h1 className="text-4xl sm:text-5xl font-serif text-white mb-2">Halo!</h1>
-            <p className="text-white/90 text-sm sm:text-base">Buat akun Anda di sini!</p>
+      <div className="relative z-10 w-full max-w-md px-4 pt-24 pb-8">
+        <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/60 p-8 sm:p-10 transition-all duration-1000"
+          style={{ opacity: isLoaded ? 1 : 0, transform: isLoaded ? 'translateY(0)' : 'translateY(30px)' }}>
+          <div className="text-center mb-8">
+            <h1 className="text-4xl sm:text-5xl font-bold text-[#cb5094] mb-2">Hello!</h1>
+            <p className="text-gray-600 text-sm font-medium">Daftar untuk memulai</p>
           </div>
 
-          <div className="space-y-4 sm:space-y-5">
-            <div className="flex items-center bg-white rounded-full px-4 sm:px-5 py-3 sm:py-4 shadow-lg hover:shadow-xl transition-all duration-300">
-              <User className="w-5 h-5 text-[#cb5094] mr-3 flex-shrink-0" />
-              <input type="text" placeholder="Nama" value={name} onChange={(e) => setName(e.target.value)} className="flex-1 outline-none text-gray-700 placeholder-gray-400 bg-transparent text-sm sm:text-base" />
+          <div className="space-y-5">
+            <div className="relative">
+              <div className="flex items-center bg-white border-2 border-gray-100 rounded-2xl px-5 py-4 shadow-sm hover:shadow-md hover:border-pink-200 transition-all duration-300 focus-within:border-[#cb5094] focus-within:ring-4 focus-within:ring-pink-100">
+                <User className="w-5 h-5 text-[#cb5094] mr-3" />
+                <input 
+                  type="text" 
+                  placeholder="Nama Lengkap" 
+                  value={name} 
+                  onChange={(e) => setName(e.target.value)}
+                  className="flex-1 outline-none text-gray-700 placeholder:text-gray-400 font-medium" 
+                />
+              </div>
             </div>
 
-            <div className="flex items-center bg-white rounded-full px-4 sm:px-5 py-3 sm:py-4 shadow-lg hover:shadow-xl transition-all duration-300">
-              <Mail className="w-5 h-5 text-[#cb5094] mr-3 flex-shrink-0" />
-              <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} className="flex-1 outline-none text-gray-700 placeholder-gray-400 bg-transparent text-sm sm:text-base" />
+            <div className="relative">
+              <div className="flex items-center bg-white border-2 border-gray-100 rounded-2xl px-5 py-4 shadow-sm hover:shadow-md hover:border-pink-200 transition-all duration-300 focus-within:border-[#cb5094] focus-within:ring-4 focus-within:ring-pink-100">
+                <Mail className="w-5 h-5 text-[#cb5094] mr-3" />
+                <input 
+                  type="email" 
+                  placeholder="Alamat Email" 
+                  value={email} 
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="flex-1 outline-none text-gray-700 placeholder:text-gray-400 font-medium" 
+                />
+              </div>
             </div>
 
-            <div className="flex items-center bg-white rounded-full px-4 sm:px-5 py-3 sm:py-4 shadow-lg hover:shadow-xl transition-all duration-300">
-              <Phone className="w-5 h-5 text-[#cb5094] mr-3 flex-shrink-0" />
-              <input type="tel" placeholder="Nomor Telepon" value={phone} onChange={(e) => setPhone(e.target.value)} className="flex-1 outline-none text-gray-700 placeholder-gray-400 bg-transparent text-sm sm:text-base" />
+            <div className="relative">
+              <div className="flex items-center bg-white border-2 border-gray-100 rounded-2xl px-5 py-4 shadow-sm hover:shadow-md hover:border-pink-200 transition-all duration-300 focus-within:border-[#cb5094] focus-within:ring-4 focus-within:ring-pink-100">
+                <Phone className="w-5 h-5 text-[#cb5094] mr-3" />
+                <input 
+                  type="tel" 
+                  placeholder="Nomor Telepon" 
+                  value={phone} 
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="flex-1 outline-none text-gray-700 placeholder:text-gray-400 font-medium" 
+                />
+              </div>
             </div>
 
-            <div className="flex items-center bg-white rounded-full px-4 sm:px-5 py-3 sm:py-4 shadow-lg hover:shadow-xl transition-all duration-300">
-              <Lock className="w-5 h-5 text-[#cb5094] mr-3 flex-shrink-0" />
-              <input type={showPassword ? "text" : "password"} placeholder="Buat Password" value={password} onChange={(e) => setPassword(e.target.value)} className="flex-1 outline-none text-gray-700 placeholder-gray-400 bg-transparent text-sm sm:text-base" />
-              <button onClick={() => setShowPassword(!showPassword)} className="ml-2 text-[#cb5094] hover:text-[#b04580] transition-colors flex-shrink-0">
-                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              </button>
+            <div className="relative">
+              <div className="flex items-center bg-white border-2 border-gray-100 rounded-2xl px-5 py-4 shadow-sm hover:shadow-md hover:border-pink-200 transition-all duration-300 focus-within:border-[#cb5094] focus-within:ring-4 focus-within:ring-pink-100">
+                <Lock className="w-5 h-5 text-[#cb5094] mr-3" />
+                <input 
+                  type={showPassword ? "text" : "password"} 
+                  placeholder="Buat Kata Sandi" 
+                  value={password} 
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="flex-1 outline-none text-gray-700 placeholder:text-gray-400 font-medium" 
+                />
+                <button 
+                  type="button" 
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="hover:bg-pink-50 rounded-lg p-1.5 transition-all"
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5 text-[#cb5094]" /> : <Eye className="w-5 h-5 text-[#cb5094]" />}
+                </button>
+              </div>
             </div>
 
-            <div className="flex items-center bg-white rounded-full px-4 sm:px-5 py-3 sm:py-4 shadow-lg hover:shadow-xl transition-all duration-300">
-              <Lock className="w-5 h-5 text-[#cb5094] mr-3 flex-shrink-0" />
-              <input type={showConfirmPassword ? "text" : "password"} placeholder="Konfirmasi Password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="flex-1 outline-none text-gray-700 placeholder-gray-400 bg-transparent text-sm sm:text-base" onKeyPress={(e) => e.key === 'Enter' && handleSubmit(e)} />
-              <button onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="ml-2 text-[#cb5094] hover:text-[#b04580] transition-colors flex-shrink-0">
-                {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              </button>
+            <div className="relative">
+              <div className="flex items-center bg-white border-2 border-gray-100 rounded-2xl px-5 py-4 shadow-sm hover:shadow-md hover:border-pink-200 transition-all duration-300 focus-within:border-[#cb5094] focus-within:ring-4 focus-within:ring-pink-100">
+                <Lock className="w-5 h-5 text-[#cb5094] mr-3" />
+                <input 
+                  type={showConfirmPassword ? "text" : "password"} 
+                  placeholder="Konfirmasi Kata Sandi" 
+                  value={confirmPassword} 
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="flex-1 outline-none text-gray-700 placeholder:text-gray-400 font-medium" 
+                />
+                <button 
+                  type="button" 
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="hover:bg-pink-50 rounded-lg p-1.5 transition-all"
+                >
+                  {showConfirmPassword ? <EyeOff className="w-5 h-5 text-[#cb5094]" /> : <Eye className="w-5 h-5 text-[#cb5094]" />}
+                </button>
+              </div>
             </div>
 
             <button
               onClick={handleSubmit}
               disabled={isLoading}
-              className="w-full bg-[#7a2c5e] hover:bg-[#5d1f46] text-white font-bold py-3 sm:py-4 rounded-full text-base sm:text-lg transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 active:scale-95 mt-6 disabled:opacity-70 disabled:cursor-not-allowed"
+              className="w-full bg-gradient-to-r from-[#cb5094] to-[#e570b3] hover:from-[#b04580] hover:to-[#d460a2] text-white font-bold py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98]"
             >
               {isLoading ? (
                 <span className="flex items-center justify-center">
@@ -292,28 +338,25 @@ function SignUp() {
                   </svg>
                   Membuat akun...
                 </span>
-              ) : 'SIGN UP'}
+              ) : 'DAFTAR'}
             </button>
-
-            <div className="text-center mt-4 sm:mt-6">
-              <p className="text-white text-xs sm:text-sm">
-                Sudah punya akun?{' '}
-                <a href="/login" className="font-bold underline hover:text-white/80 transition-all">
-                  Login di sini
-                </a>
-              </p>
-            </div>
           </div>
+
+          <p className="text-center text-gray-600 mt-6 text-sm font-medium">
+            Sudah punya akun? <a href="/login" className="text-[#cb5094] font-bold hover:underline transition-all">Login sekarang</a>
+          </p>
         </div>
       </div>
 
       <style>{`
-        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
-        @keyframes float-delayed { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
-        @keyframes progress { from { width: 100%; } to { width: 0%; } }
-        .animate-float { animation: float 6s ease-in-out infinite; }
-        .animate-float-delayed { animation: float-delayed 8s ease-in-out infinite; animation-delay: 1s; }
+        @keyframes progress { from { width: 100% } to { width: 0% } }
         .animate-progress { animation: progress 4s linear forwards; }
+        
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
+        
+        * {
+          font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
       `}</style>
     </div>
   );

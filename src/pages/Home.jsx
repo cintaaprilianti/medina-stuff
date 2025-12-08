@@ -219,7 +219,6 @@ function Home() {
                 <h1 className="text-5xl sm:text-6xl lg:text-7xl font-serif leading-tight mb-2">
                   <span className="text-[#cb5094] block relative inline-block">
                     Dress with Dignity,
-                    <span className="absolute left-0 -bottom-2 w-full h-3 bg-[#cb5094]/20 rounded-full"></span>
                   </span>
                 </h1>
                 <h1 className="text-5xl sm:text-6xl lg:text-7xl font-serif leading-tight text-[#cb5094] transition-all duration-1000 delay-200"

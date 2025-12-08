@@ -11,7 +11,7 @@ function ProductVariantManagement() {
   const navigate = useNavigate();
   
   const [product, setProduct] = useState(null);
-  const [variants, setVariants] = useState([]);
+  const [variants, setVariants] = useState([]); // ✅ Default array kosong
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingVariant, setEditingVariant] = useState(null);
@@ -36,6 +36,7 @@ function ProductVariantManagement() {
   const fetchProduct = async () => {
     try {
       const response = await productAPI.getById(productId);
+      console.log('Product response:', response);
       setProduct(response.data);
     } catch (error) {
       console.error('Error fetching product:', error);
@@ -47,33 +48,65 @@ function ProductVariantManagement() {
   const fetchVariants = async () => {
     try {
       setLoading(true);
-      const response = await variantAPI.getByProductId(productId, true); // Include inactive
-      setVariants(response.data || []); // Ensure it's always an array
+      console.log('Fetching variants for product:', productId);
+      
+      const response = await variantAPI.getByProductId(productId, true);
+      console.log('Variants raw response:', response);
+      console.log('Variants response.data:', response.data);
+      
+      // ✅ PERBAIKAN: Handle berbagai format response
+      let variantsData = [];
+      
+      if (Array.isArray(response.data)) {
+        // Backend return array langsung
+        variantsData = response.data;
+      } else if (response.data && Array.isArray(response.data.data)) {
+        // Backend return { data: [...] }
+        variantsData = response.data.data;
+      } else if (Array.isArray(response)) {
+        // Response langsung array
+        variantsData = response;
+      }
+      
+      console.log('Processed variants:', variantsData);
+      setVariants(variantsData);
+      
     } catch (error) {
       console.error('Error fetching variants:', error);
-      setVariants([]); // Set empty array on error
-      alert('Gagal memuat varian');
+      console.error('Error response:', error.response);
+      setVariants([]); // ✅ Fallback ke array kosong
+      // Jangan alert jika variants kosong, itu normal
+      if (error.response?.status !== 404) {
+        alert('Gagal memuat varian: ' + (error.message || 'Unknown error'));
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  // Auto-generate SKU
+  // Auto-generate SKU dengan random string
   const generateSKU = () => {
     if (!product || !formData.ukuran || !formData.warna) return;
     
-    const baseSlug = product.slug.toUpperCase().replace(/-/g, '-');
-    const size = formData.ukuran.toUpperCase();
-    const color = formData.warna.toUpperCase().replace(/\s+/g, '-');
-    const timestamp = Date.now().toString().slice(-4);
+    const baseSlug = product.slug.toUpperCase().replace(/-/g, '');
+    const size = formData.ukuran.toUpperCase().replace(/\s+/g, '');
+    const color = formData.warna.toUpperCase().replace(/\s+/g, '');
     
-    const sku = `${baseSlug}-${size}-${color}-${timestamp}`;
+    // ✅ Tambah random string untuk uniqueness
+    const timestamp = Date.now().toString().slice(-6);
+    const random = Math.random().toString(36).substring(2, 5).toUpperCase();
+    
+    const sku = `${baseSlug}-${size}-${color}-${timestamp}-${random}`;
     setFormData({ ...formData, sku });
   };
 
   // Handle form submit
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    console.log('=== SUBMIT VARIANT ===');
+    console.log('Product ID:', productId);
+    console.log('Form Data:', formData);
     
     // Validation
     if (!formData.sku || !formData.ukuran || !formData.warna || !formData.stok) {
@@ -89,20 +122,30 @@ function ProductVariantManagement() {
       hargaOverride: formData.hargaOverride ? parseInt(formData.hargaOverride) : null,
       aktif: formData.aktif
     };
+    
+    console.log('Payload:', payload);
 
     try {
+      let response;
       if (editingVariant) {
-        await variantAPI.update(editingVariant.id, payload);
+        console.log('Updating variant:', editingVariant.id);
+        response = await variantAPI.update(editingVariant.id, payload);
+        console.log('Update response:', response);
         alert('Varian berhasil diupdate!');
       } else {
-        await variantAPI.create(productId, payload);
+        console.log('Creating variant for product:', productId);
+        response = await variantAPI.create(productId, payload);
+        console.log('Create response:', response);
         alert('Varian berhasil dibuat!');
       }
       
       handleCancelForm();
-      fetchVariants();
+      fetchVariants(); // Refresh list
     } catch (error) {
-      console.error('Error saving variant:', error);
+      console.error('=== ERROR SAVING VARIANT ===');
+      console.error('Error:', error);
+      console.error('Error response:', error.response);
+      console.error('Error message:', error.message);
       alert('Gagal menyimpan varian: ' + (error.message || 'Unknown error'));
     }
   };
@@ -126,6 +169,7 @@ function ProductVariantManagement() {
     if (!confirm(`Yakin ingin menghapus varian "${sku}"?`)) return;
 
     try {
+      console.log('Deleting variant:', id);
       await variantAPI.delete(id);
       alert('Varian berhasil dihapus!');
       fetchVariants();
@@ -149,18 +193,15 @@ function ProductVariantManagement() {
     });
   };
 
-  // Get unique sizes and colors (with safety check)
-  const uniqueSizes = Array.isArray(variants) 
-    ? [...new Set(variants.map(v => v.ukuran))]
-    : [];
-  const uniqueColors = Array.isArray(variants)
-    ? [...new Set(variants.map(v => v.warna))]
-    : [];
+  // ✅ Safety check - pastikan variants adalah array
+  const safeVariants = Array.isArray(variants) ? variants : [];
+  
+  // Get unique sizes and colors
+  const uniqueSizes = [...new Set(safeVariants.map(v => v.ukuran))];
+  const uniqueColors = [...new Set(safeVariants.map(v => v.warna))];
 
-  // Calculate total stock (with safety check)
-  const totalStock = Array.isArray(variants)
-    ? variants.reduce((sum, v) => sum + (v.aktif ? v.stok : 0), 0)
-    : 0;
+  // Calculate total stock
+  const totalStock = safeVariants.reduce((sum, v) => sum + (v.aktif ? v.stok : 0), 0);
 
   if (!product) {
     return (
@@ -221,7 +262,7 @@ function ProductVariantManagement() {
               </div>
               <div>
                 <p className="text-gray-600">Total Varian</p>
-                <p className="font-bold text-blue-600">{variants.length} varian</p>
+                <p className="font-bold text-blue-600">{safeVariants.length} varian</p>
               </div>
             </div>
           </div>
@@ -231,7 +272,7 @@ function ProductVariantManagement() {
       {/* Summary Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl shadow-md p-6 text-center">
-          <div className="text-3xl font-bold text-[#cb5094]">{variants.length}</div>
+          <div className="text-3xl font-bold text-[#cb5094]">{safeVariants.length}</div>
           <div className="text-sm text-gray-600 mt-1">Total Varian</div>
         </div>
         <div className="bg-white rounded-xl shadow-md p-6 text-center">
@@ -260,164 +301,167 @@ function ProductVariantManagement() {
             </button>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* Left Column */}
-            <div className="space-y-4">
-              {/* Ukuran */}
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">
-                  Ukuran <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.ukuran}
-                  onChange={(e) => setFormData({ ...formData, ukuran: e.target.value })}
-                  onBlur={generateSKU}
-                  placeholder="S / M / L / XL"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#cb5094]"
-                  required
-                />
-              </div>
-
-              {/* Warna */}
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">
-                  Warna <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.warna}
-                  onChange={(e) => setFormData({ ...formData, warna: e.target.value })}
-                  onBlur={generateSKU}
-                  placeholder="Hitam / Navy / Maroon"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#cb5094]"
-                  required
-                />
-              </div>
-
-              {/* SKU */}
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">
-                  SKU <span className="text-red-500">*</span>
-                </label>
-                <div className="flex gap-2">
+          <form onSubmit={handleSubmit}>
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Left Column */}
+              <div className="space-y-4">
+                {/* Ukuran */}
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">
+                    Ukuran <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="text"
-                    value={formData.sku}
-                    onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-                    placeholder="AUTO-GENERATED"
-                    className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#cb5094] font-mono text-sm"
+                    value={formData.ukuran}
+                    onChange={(e) => setFormData({ ...formData, ukuran: e.target.value })}
+                    onBlur={generateSKU}
+                    placeholder="S / M / L / XL"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#cb5094]"
                     required
                   />
-                  <button
-                    type="button"
-                    onClick={generateSKU}
-                    className="px-4 py-3 bg-gray-200 hover:bg-gray-300 rounded-xl font-bold transition-all"
-                    title="Generate SKU"
-                  >
-                    Auto
-                  </button>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  SKU harus unik untuk setiap varian
-                </p>
-              </div>
-            </div>
 
-            {/* Right Column */}
-            <div className="space-y-4">
-              {/* Stok */}
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">
-                  Stok <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  value={formData.stok}
-                  onChange={(e) => setFormData({ ...formData, stok: e.target.value })}
-                  placeholder="50"
-                  min="0"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#cb5094]"
-                  required
-                />
-              </div>
-
-              {/* Harga Override */}
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">
-                  Harga Khusus (Opsional)
-                </label>
-                <input
-                  type="number"
-                  value={formData.hargaOverride}
-                  onChange={(e) => setFormData({ ...formData, hargaOverride: e.target.value })}
-                  placeholder={`Default: ${formatPrice(product.hargaDasar)}`}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#cb5094]"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Kosongkan untuk menggunakan harga dasar produk
-                </p>
-              </div>
-
-              {/* Aktif */}
-              <div className="flex items-center gap-3 pt-6">
-                <input
-                  type="checkbox"
-                  id="aktif-variant"
-                  checked={formData.aktif}
-                  onChange={(e) => setFormData({ ...formData, aktif: e.target.checked })}
-                  className="w-5 h-5 text-[#cb5094] rounded"
-                />
-                <label htmlFor="aktif-variant" className="text-sm font-medium text-gray-700">
-                  Varian Aktif
-                </label>
-              </div>
-            </div>
-          </div>
-
-          {/* Preview */}
-          {formData.ukuran && formData.warna && (
-            <div className="mt-6 bg-[#fffbf8] rounded-xl p-4 border border-[#cb5094]">
-              <p className="text-sm text-gray-600 mb-2">Preview Varian:</p>
-              <div className="flex items-center justify-between">
+                {/* Warna */}
                 <div>
-                  <p className="font-bold text-gray-800">
-                    {formData.ukuran} - {formData.warna}
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    Stok: {formData.stok || 0} pcs
-                  </p>
-                  <p className="text-sm text-[#cb5094] font-bold">
-                    {formData.hargaOverride 
-                      ? formatPrice(parseInt(formData.hargaOverride))
-                      : formatPrice(product.hargaDasar)
-                    }
+                  <label className="block text-sm font-bold text-gray-700 mb-2">
+                    Warna <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.warna}
+                    onChange={(e) => setFormData({ ...formData, warna: e.target.value })}
+                    onBlur={generateSKU}
+                    placeholder="Hitam / Navy / Maroon"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#cb5094]"
+                    required
+                  />
+                </div>
+
+                {/* SKU */}
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">
+                    SKU <span className="text-red-500">*</span>
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={formData.sku}
+                      onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                      placeholder="AUTO-GENERATED"
+                      className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#cb5094] font-mono text-sm"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={generateSKU}
+                      className="px-4 py-3 bg-gray-200 hover:bg-gray-300 rounded-xl font-bold transition-all"
+                      title="Generate SKU"
+                    >
+                      Auto
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    SKU harus unik untuk setiap varian
                   </p>
                 </div>
-                {formData.sku && (
-                  <code className="text-xs bg-gray-100 px-3 py-2 rounded-lg">
-                    {formData.sku}
-                  </code>
-                )}
+              </div>
+
+              {/* Right Column */}
+              <div className="space-y-4">
+                {/* Stok */}
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">
+                    Stok <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.stok}
+                    onChange={(e) => setFormData({ ...formData, stok: e.target.value })}
+                    placeholder="50"
+                    min="0"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#cb5094]"
+                    required
+                  />
+                </div>
+
+                {/* Harga Override */}
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">
+                    Harga Khusus (Opsional)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.hargaOverride}
+                    onChange={(e) => setFormData({ ...formData, hargaOverride: e.target.value })}
+                    placeholder={`Default: ${formatPrice(product.hargaDasar)}`}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#cb5094]"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Kosongkan untuk menggunakan harga dasar produk
+                  </p>
+                </div>
+
+                {/* Aktif */}
+                <div className="flex items-center gap-3 pt-6">
+                  <input
+                    type="checkbox"
+                    id="aktif-variant"
+                    checked={formData.aktif}
+                    onChange={(e) => setFormData({ ...formData, aktif: e.target.checked })}
+                    className="w-5 h-5 text-[#cb5094] rounded"
+                  />
+                  <label htmlFor="aktif-variant" className="text-sm font-medium text-gray-700">
+                    Varian Aktif
+                  </label>
+                </div>
               </div>
             </div>
-          )}
 
-          {/* Buttons */}
-          <div className="flex gap-3 mt-6">
-            <button
-              onClick={handleSubmit}
-              className="flex-1 bg-gradient-to-r from-[#cb5094] to-[#e570b3] text-white py-3 rounded-xl font-bold hover:shadow-xl transition-all"
-            >
-              {editingVariant ? 'Update Varian' : 'Simpan Varian'}
-            </button>
-            <button
-              onClick={handleCancelForm}
-              className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-300 transition-all"
-            >
-              Batal
-            </button>
-          </div>
+            {/* Preview */}
+            {formData.ukuran && formData.warna && (
+              <div className="mt-6 bg-[#fffbf8] rounded-xl p-4 border border-[#cb5094]">
+                <p className="text-sm text-gray-600 mb-2">Preview Varian:</p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-bold text-gray-800">
+                      {formData.ukuran} - {formData.warna}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      Stok: {formData.stok || 0} pcs
+                    </p>
+                    <p className="text-sm text-[#cb5094] font-bold">
+                      {formData.hargaOverride 
+                        ? formatPrice(parseInt(formData.hargaOverride))
+                        : formatPrice(product.hargaDasar)
+                      }
+                    </p>
+                  </div>
+                  {formData.sku && (
+                    <code className="text-xs bg-gray-100 px-3 py-2 rounded-lg">
+                      {formData.sku}
+                    </code>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Buttons */}
+            <div className="flex gap-3 mt-6">
+              <button
+                type="submit"
+                className="flex-1 bg-gradient-to-r from-[#cb5094] to-[#e570b3] text-white py-3 rounded-xl font-bold hover:shadow-xl transition-all"
+              >
+                {editingVariant ? 'Update Varian' : 'Simpan Varian'}
+              </button>
+              <button
+                type="button"
+                onClick={handleCancelForm}
+                className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-300 transition-all"
+              >
+                Batal
+              </button>
+            </div>
+          </form>
         </div>
       )}
 
@@ -430,7 +474,7 @@ function ProductVariantManagement() {
               <p className="text-gray-600">Memuat varian...</p>
             </div>
           </div>
-        ) : variants.length === 0 ? (
+        ) : safeVariants.length === 0 ? (
           <div className="text-center py-20">
             <Package className="w-24 h-24 text-gray-300 mx-auto mb-4" />
             <h3 className="text-xl font-bold text-gray-800 mb-2">Belum Ada Varian</h3>
@@ -460,7 +504,7 @@ function ProductVariantManagement() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {variants.map((variant) => (
+                {safeVariants.map((variant) => (
                   <tr key={variant.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
                       <code className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">

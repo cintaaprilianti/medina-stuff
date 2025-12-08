@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import {
   Plus, Edit2, Trash2, Search, PackageSearch, Eye, X
 } from 'lucide-react';
-import { productAPI, categoryAPI } from '../utils/api';
+import { productAPI, categoryAPI, variantAPI } from '../utils/api';
 import { formatPrice, getStatusLabel, getStatusColor, PRODUCT_STATUS } from '../utils/formatPrice';
 import ImageUpload from '../components/ImageUpload';
+import { Notification, useNotification } from '../pages/Notifications';
 
 function ProductManagement() {
   const [products, setProducts] = useState([]);
@@ -17,6 +18,9 @@ function ProductManagement() {
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const navigate = useNavigate();
+  
+  // ✨ Notification hook
+  const notification = useNotification();
 
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -32,6 +36,14 @@ function ProductManagement() {
     status: 'READY',
     aktif: true,
     gambarUrl: ''
+  });
+
+  // Varian yang akan dibuat bersamaan dengan produk
+  const [variants, setVariants] = useState([]);
+  const [variantForm, setVariantForm] = useState({
+    ukuran: '',
+    warna: '',
+    stok: ''
   });
 
   // Fetch products
@@ -62,7 +74,7 @@ function ProductManagement() {
       setTotalProducts(response.data.meta?.total || 0);
     } catch (error) {
       console.error('Error fetching products:', error);
-      alert('Gagal memuat produk: ' + (error.message || 'Unknown error'));
+      notification.error('Gagal memuat produk: ' + (error.message || 'Unknown error'));
     } finally {
       setLoading(false);
     }
@@ -90,13 +102,38 @@ function ProductManagement() {
     setFormData({ ...formData, nama, slug });
   };
 
+  // Add variant to list
+  const handleAddVariant = () => {
+    if (!variantForm.ukuran || !variantForm.warna || !variantForm.stok) {
+      notification.warning('Ukuran, warna, dan stok wajib diisi');
+      return;
+    }
+
+    const newVariant = {
+      id: Date.now(),
+      ukuran: variantForm.ukuran,
+      warna: variantForm.warna,
+      stok: parseInt(variantForm.stok)
+    };
+
+    setVariants([...variants, newVariant]);
+    setVariantForm({ ukuran: '', warna: '', stok: '' });
+    notification.success('Varian ditambahkan ke daftar');
+  };
+
+  // Remove variant from list
+  const handleRemoveVariant = (id) => {
+    setVariants(variants.filter(v => v.id !== id));
+    notification.info('Varian dihapus dari daftar');
+  };
+
   // Handle form submit
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     // Validation
     if (!formData.categoryId || !formData.nama || !formData.hargaDasar) {
-      alert('Kategori, nama, dan harga wajib diisi');
+      notification.warning('Kategori, nama, dan harga wajib diisi');
       return;
     }
 
@@ -108,18 +145,86 @@ function ProductManagement() {
 
     try {
       if (editingProduct) {
+        // Update produk
         await productAPI.update(editingProduct.id, payload);
-        alert('Produk berhasil diupdate!');
+        notification.success('✅ Produk berhasil diupdate!');
       } else {
-        await productAPI.create(payload);
-        alert('Produk berhasil dibuat!');
+        // Create produk baru
+        console.log('Creating product with payload:', payload);
+        const response = await productAPI.create(payload);
+        
+        console.log('=== PRODUCT CREATE RESPONSE ===');
+        console.log('response.data:', response.data);
+        
+        // Extract ID - Backend return { message: "...", data: { id, nama, ... } }
+        const newProductId = response.data?.data?.id;
+        
+        console.log('Extracted Product ID:', newProductId);
+        
+        if (!newProductId) {
+          console.error('Product ID tidak ditemukan di response!');
+          throw new Error('Product ID tidak ditemukan di response');
+        }
+        
+        // Create variants jika ada
+        if (variants.length > 0) {
+          console.log(`Creating ${variants.length} variants for product ${newProductId}...`);
+          
+          let successCount = 0;
+          let errorCount = 0;
+          
+          for (let i = 0; i < variants.length; i++) {
+            const variant = variants[i];
+            
+            try {
+              // Generate SKU
+              const baseSlug = formData.slug.toUpperCase().replace(/-/g, '');
+              const size = variant.ukuran.toUpperCase().replace(/\s+/g, '');
+              const color = variant.warna.toUpperCase().replace(/\s+/g, '');
+              const timestamp = Date.now().toString().slice(-6);
+              const random = Math.random().toString(36).substring(2, 5).toUpperCase();
+              const sku = `${baseSlug}-${size}-${color}-${timestamp}-${random}`;
+
+              const variantPayload = {
+                sku,
+                ukuran: variant.ukuran,
+                warna: variant.warna,
+                stok: variant.stok,
+                hargaOverride: null,
+                aktif: true
+              };
+              
+              console.log(`[${i + 1}/${variants.length}] Creating variant:`, variantPayload);
+              
+              await variantAPI.create(newProductId, variantPayload);
+              successCount++;
+              
+              console.log(`✅ Variant ${i + 1} created successfully`);
+              
+            } catch (variantError) {
+              errorCount++;
+              console.error(`❌ Failed to create variant ${i + 1}:`, variantError);
+            }
+          }
+          
+          if (errorCount > 0) {
+            notification.warning(`Produk berhasil dibuat! ${successCount} varian berhasil, ${errorCount} varian gagal.`);
+          } else {
+            notification.success(`🎉 Produk dan ${successCount} varian berhasil dibuat!`);
+          }
+          
+        } else {
+          notification.success('✅ Produk berhasil dibuat!');
+        }
       }
       
       handleCancelForm();
       fetchProducts();
+      
     } catch (error) {
-      console.error('Error saving product:', error);
-      alert('Gagal menyimpan produk: ' + (error.message || 'Unknown error'));
+      console.error('=== ERROR SAVING PRODUCT ===');
+      console.error('Error:', error);
+      notification.error('❌ Gagal menyimpan produk: ' + (error.message || 'Unknown error'));
     }
   };
 
@@ -137,6 +242,7 @@ function ProductManagement() {
       aktif: product.aktif,
       gambarUrl: product.gambarUrl || ''
     });
+    setVariants([]);
     setShowForm(true);
   };
 
@@ -146,11 +252,11 @@ function ProductManagement() {
 
     try {
       await productAPI.delete(id);
-      alert('Produk berhasil dihapus!');
+      notification.success(`🗑️ Produk "${nama}" berhasil dihapus!`);
       fetchProducts();
     } catch (error) {
       console.error('Error deleting product:', error);
-      alert('Gagal menghapus produk: ' + (error.message || 'Unknown error'));
+      notification.error('❌ Gagal menghapus produk: ' + (error.message || 'Unknown error'));
     }
   };
 
@@ -169,11 +275,14 @@ function ProductManagement() {
       aktif: true,
       gambarUrl: ''
     });
+    setVariants([]);
+    setVariantForm({ ukuran: '', warna: '', stok: '' });
   };
 
   // Handle image uploaded
   const handleImageUploaded = (url) => {
     setFormData({ ...formData, gambarUrl: url });
+    notification.success('📷 Gambar berhasil diupload!');
   };
 
   // View variants
@@ -183,6 +292,19 @@ function ProductManagement() {
 
   return (
     <div className="space-y-6">
+      {/* Render Notifications */}
+      <div className="fixed top-0 right-0 z-[100] space-y-3 p-4">
+        {notification.notifications.map((notif) => (
+          <Notification
+            key={notif.id}
+            type={notif.type}
+            message={notif.message}
+            duration={notif.duration}
+            onClose={() => notification.removeNotification(notif.id)}
+          />
+        ))}
+      </div>
+
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Kelola Produk</h1>
@@ -378,6 +500,87 @@ function ProductManagement() {
             </div>
           </div>
 
+          {/* Varian Section - Hanya tampil saat create (bukan edit) */}
+          {!editingProduct && (
+            <div className="mt-8 border-t pt-6">
+              <h3 className="text-xl font-bold text-gray-900 mb-4">
+                Varian Produk (Opsional)
+              </h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Tambahkan ukuran, warna, dan stok untuk setiap varian
+              </p>
+
+              {/* Variant Input Form */}
+              <div className="bg-gray-50 rounded-xl p-4 mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <input
+                    type="text"
+                    placeholder="Ukuran (S/M/L/XL)"
+                    value={variantForm.ukuran}
+                    onChange={(e) => setVariantForm({ ...variantForm, ukuran: e.target.value })}
+                    className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#cb5094]"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Warna"
+                    value={variantForm.warna}
+                    onChange={(e) => setVariantForm({ ...variantForm, warna: e.target.value })}
+                    className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#cb5094]"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Stok"
+                    value={variantForm.stok}
+                    onChange={(e) => setVariantForm({ ...variantForm, stok: e.target.value })}
+                    className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#cb5094]"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddVariant}
+                    className="bg-[#cb5094] text-white px-4 py-2 rounded-lg font-bold hover:bg-[#b04783] transition-all flex items-center justify-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Tambah
+                  </button>
+                </div>
+              </div>
+
+              {/* Variants List */}
+              {variants.length > 0 && (
+                <div className="space-y-2">
+                  {variants.map((variant) => (
+                    <div
+                      key={variant.id}
+                      className="flex items-center justify-between bg-white border border-gray-200 rounded-lg p-3"
+                    >
+                      <div className="flex items-center gap-4">
+                        <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-bold">
+                          {variant.ukuran}
+                        </span>
+                        <span className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-bold">
+                          {variant.warna}
+                        </span>
+                        <span className="text-gray-700 font-medium">
+                          Stok: {variant.stok} pcs
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveVariant(variant.id)}
+                        className="text-red-600 hover:bg-red-50 p-2 rounded-lg transition-all"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                  <div className="text-sm text-gray-600 mt-2">
+                    Total: {variants.length} varian
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="flex gap-3 mt-6">
             <button
               onClick={handleSubmit}
@@ -494,16 +697,6 @@ function ProductManagement() {
 
             {totalPages > 1 && (
               <div className="flex justify-center items-center gap-2 p-6 border-t border-gray-200">
-                <button
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                >
-                  Prev
-                </button>
-                <span className="text-sm text-gray-600">
-                  Page {currentPage} of {totalPages}
-                </span>
                 <button
                   onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
