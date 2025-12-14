@@ -1,4 +1,3 @@
-// src/customer/CustomerProfile.jsx
 import { useState, useEffect } from 'react';
 import { Edit2, Save } from 'lucide-react';
 

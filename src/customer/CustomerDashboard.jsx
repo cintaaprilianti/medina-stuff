@@ -1,13 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import {
-  ShoppingBag, Menu, X, User, Heart, Search, ShoppingCart, Package, LogOut
+  ShoppingBag, Menu, X, Heart, Search, ShoppingCart, Package, LogOut, Home
 } from 'lucide-react';
 
-/**
- * CustomerDashboard - Layout wrapper untuk semua halaman customer
- * Menyediakan navbar, sidebar, dan auth protection
- */
 function CustomerDashboard() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -26,7 +22,6 @@ function CustomerDashboard() {
     alamat: 'Belum diatur'
   });
 
-  // Auth check
   useEffect(() => {
     const checkAuth = () => {
       try {
@@ -41,7 +36,6 @@ function CustomerDashboard() {
         const user = JSON.parse(storedUser);
         const role = (user.role || '').toString().trim().toUpperCase();
 
-        // Redirect admin to admin panel
         if (role === 'ADMIN') {
           navigate('/admin/dashboard', { replace: true });
           return;
@@ -57,7 +51,6 @@ function CustomerDashboard() {
 
         setUserData(updatedUser);
 
-        // Redirect to products if on base /customer path
         if (location.pathname === '/customer' || location.pathname === '/customer/') {
           navigate('/customer/products', { replace: true });
         }
@@ -73,7 +66,6 @@ function CustomerDashboard() {
     checkAuth();
   }, [navigate, location.pathname]);
 
-  // Load cart & wishlist counts
   useEffect(() => {
     const updateCounts = () => {
       const cart = JSON.parse(localStorage.getItem('cart') || '[]');
@@ -84,7 +76,6 @@ function CustomerDashboard() {
 
     updateCounts();
 
-    // Listen for storage changes
     window.addEventListener('storage', updateCounts);
     return () => window.removeEventListener('storage', updateCounts);
   }, []);
@@ -105,7 +96,6 @@ function CustomerDashboard() {
     return location.pathname === path;
   };
 
-  // Loading screen
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#cb5094] to-[#e570b3] flex items-center justify-center">
@@ -118,16 +108,14 @@ function CustomerDashboard() {
   }
 
   const menuItems = [
-    { path: '/customer/products', icon: ShoppingBag, label: 'Belanja Sekarang' },
+    { path: '/customer/products', icon: Home, label: 'Beranda' },
     { path: '/customer/cart', icon: ShoppingCart, label: 'Keranjang', badge: cartCount },
-    { path: '/customer/orders', icon: Package, label: 'Pesanan Saya' },
+    { path: '/customer/orders', icon: Package, label: 'Pesanan' },
     { path: '/customer/wishlist', icon: Heart, label: 'Wishlist', badge: wishlistCount },
-    { path: '/customer/profile', icon: User, label: 'Profil Saya' },
   ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* Navbar */}
       <nav className="fixed top-0 w-full z-50 bg-white/95 backdrop-blur-lg shadow-xl border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -143,7 +131,7 @@ function CustomerDashboard() {
                 <div className="relative w-12 h-12 bg-gradient-to-br from-[#cb5094] to-[#e570b3] rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-all duration-300 overflow-hidden">
                   <img
                     src="/logo.png"
-                    alt="Medina Stuff"
+                    alt="MyMedina"
                     className="w-8 h-8 object-contain z-10"
                     onError={(e) => {
                       e.target.style.display = 'none';
@@ -151,17 +139,16 @@ function CustomerDashboard() {
                     }}
                   />
                   <span className="absolute inset-0 flex items-center justify-center text-2xl font-bold text-white z-10 hidden">
-                    MS
+                    MM
                   </span>
                 </div>
                 <div className="hidden sm:block">
-                  <div className="text-base font-bold text-gray-800">Medina Stuff</div>
-                  <div className="text-xs text-gray-500">Fashion Muslimah Premium</div>
+                  <div className="text-base font-bold text-gray-800">MyMedina</div>
+                  <div className="text-xs text-gray-500">by Medina Stuff</div>
                 </div>
               </a>
             </div>
 
-            {/* Search Bar - Desktop */}
             <div className="flex-1 max-w-2xl mx-4 hidden md:block">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -176,7 +163,6 @@ function CustomerDashboard() {
             </div>
 
             <div className="flex items-center space-x-4">
-              {/* Cart Button */}
               <button
                 onClick={() => navigate('/customer/cart')}
                 className="relative p-2 hover:bg-pink-50 rounded-full transition"
@@ -189,20 +175,20 @@ function CustomerDashboard() {
                 )}
               </button>
 
-              {/* User Profile */}
-              <div className="hidden sm:flex items-center space-x-3">
+              <button
+                onClick={() => navigate('/customer/profile')}
+                className="hidden sm:flex items-center space-x-3 hover:bg-pink-50 rounded-xl p-2 transition-all duration-200"
+              >
                 <div className="w-10 h-10 bg-gradient-to-br from-[#cb5094] to-[#e570b3] rounded-full flex items-center justify-center shadow-md">
                   <span className="text-sm font-bold text-white">{getInitials(userData.nama)}</span>
                 </div>
-                <div>
+                <div className="text-left">
                   <div className="text-sm font-bold text-gray-800">{userData.nama}</div>
-                  <div className="text-xs text-[#cb5094] font-medium">Customer</div>
                 </div>
-              </div>
+              </button>
             </div>
           </div>
 
-          {/* Search Bar - Mobile */}
           <div className="md:hidden pb-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -218,9 +204,8 @@ function CustomerDashboard() {
         </div>
       </nav>
 
-      <div className="flex pt-16 min-h-screen">
-        {/* Sidebar */}
-        <aside className={`fixed lg:static inset-y-0 left-0 z-40 w-64 bg-white shadow-2xl transform transition-transform duration-300 pt-16 lg:pt-0 ${
+      <div className="flex pt-16 min-h-screen pb-20 lg:pb-0">
+        <aside className={`fixed lg:static inset-y-0 left-0 z-40 w-64 bg-white shadow-2xl transform transition-transform duration-300 pt-16 lg:pt-0 hidden lg:block ${
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}>
           <div className="h-full flex flex-col">
@@ -268,18 +253,63 @@ function CustomerDashboard() {
           </div>
         </aside>
 
-        {/* Overlay */}
         {isSidebarOpen && (
           <div className="fixed inset-0 bg-black/50 z-30 lg:hidden" onClick={() => setIsSidebarOpen(false)} />
         )}
 
-        {/* Main Content - Render child routes */}
         <main className="flex-1 p-6 lg:p-10">
           <div className="max-w-7xl mx-auto">
             <Outlet context={{ searchQuery, userData, setCartCount, setWishlistCount }} />
           </div>
         </main>
       </div>
+
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-2xl lg:hidden z-50">
+        <div className="grid grid-cols-5 h-16">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = isActiveRoute(item.path);
+            
+            return (
+              <button
+                key={item.path}
+                onClick={() => navigate(item.path)}
+                className={`flex flex-col items-center justify-center space-y-1 relative transition-all duration-200 ${
+                  isActive ? 'text-[#cb5094]' : 'text-gray-600'
+                }`}
+              >
+                <div className="relative">
+                  <Icon className="w-6 h-6" />
+                  {item.badge > 0 && (
+                    <span className="absolute -top-2 -right-2 w-4 h-4 bg-[#cb5094] text-white text-[10px] rounded-full flex items-center justify-center font-bold">
+                      {item.badge}
+                    </span>
+                  )}
+                </div>
+                <span className="text-[10px] font-medium">{item.label}</span>
+                {isActive && (
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-gradient-to-r from-[#cb5094] to-[#e570b3] rounded-b-full"></div>
+                )}
+              </button>
+            );
+          })}
+          
+          <button
+            onClick={() => navigate('/customer/profile')}
+            className={`flex flex-col items-center justify-center space-y-1 relative transition-all duration-200 ${
+              isActiveRoute('/customer/profile') ? 'text-[#cb5094]' : 'text-gray-600'
+            }`}
+          >
+            <div className="w-6 h-6 bg-gradient-to-br from-[#cb5094] to-[#e570b3] rounded-full flex items-center justify-center">
+              <span className="text-[10px] font-bold text-white">{getInitials(userData.nama)}</span>
+            </div>
+            <span className="text-[10px] font-medium">Profil</span>
+            {isActiveRoute('/customer/profile') && (
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-gradient-to-r from-[#cb5094] to-[#e570b3] rounded-b-full"></div>
+            )}
+          </button>
+        </div>
+      </nav>
     </div>
   );
 }
