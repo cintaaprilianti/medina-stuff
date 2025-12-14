@@ -49,9 +49,8 @@ function Home() {
                 </div>
               </div>
               <div className={`hidden sm:block transition-all duration-700 delay-100 ${isLoaded ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4'}`}>
-                <div className="text-base text-gray-600 font-medium italic tracking-wide">
-                  Medina Stuff
-                </div>
+                <div className="text-base font-bold text-gray-600">MyMedina</div>
+                  <div className="text-xs text-gray-400">by Medina Stuff</div>
               </div>
             </Link>
 
