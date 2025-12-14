@@ -9,14 +9,12 @@ const api = axios.create({
   },
 });
 
-// REQUEST INTERCEPTOR → JANGAN SENTUH Content-Type kalau FormData!
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('accessToken');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
 
-  // Kalau kirim FormData (upload gambar), HAPUS Content-Type biar axios otomatis set boundary
   if (config.data instanceof FormData) {
     delete config.headers['Content-Type'];
   }
@@ -24,7 +22,6 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// RESPONSE INTERCEPTOR
 api.interceptors.response.use(
   (res) => res,
   (error) => {
@@ -37,7 +34,13 @@ api.interceptors.response.use(
   }
 );
 
-// === CATEGORY API ===
+export const authAPI = {
+  login: (data) => api.post('/auth/login', data),
+  register: (data) => api.post('/auth/register', data),
+  profile: () => api.get('/auth/profile'),
+  updateProfile: (data) => api.put('/auth/profile', data),
+};
+
 export const categoryAPI = {
   getAll: (includeInactive = false) =>
     api.get('/categories', { params: { includeInactive } }).then(res => {
@@ -50,7 +53,6 @@ export const categoryAPI = {
   delete: (id) => api.delete(`/categories/${id}`),
 };
 
-// === PRODUCT API ===
 export const productAPI = {
   getAll: (params = {}) => api.get('/products', { params }),
   getById: (id) => api.get(`/products/${id}`),
@@ -59,7 +61,6 @@ export const productAPI = {
   delete: (id) => api.delete(`/products/${id}`),
 };
 
-// === VARIANT API ===
 export const variantAPI = {
   getByProductId: (productId, includeInactive = false) =>
     api.get(`/products/${productId}/variants`, { params: { includeInactive } }),
@@ -68,15 +69,35 @@ export const variantAPI = {
   delete: (id) => api.delete(`/variants/${id}`),
 };
 
-// === UPLOAD API → INI YANG BIKIN UPLOAD JADI JALAN MULUS
 export const uploadAPI = {
   uploadImage: async (file) => {
     const formData = new FormData();
     formData.append('file', file);
-
-    // LANGSUNG POST, JANGAN SET HEADER APAPUN!
     return await api.post('/upload/image', formData);
   },
+};
+
+export const orderAPI = {
+  create: (data) => api.post('/orders', data),
+  getMyOrders: () => api.get('/orders'),
+  getById: (id) => api.get(`/orders/${id}`),
+
+  getAllOrders: (params = {}) => api.get('/orders/admin/all', { params }),
+  updateStatus: (id, data) => api.put(`/orders/${id}/status`, data),
+};
+
+export const paymentAPI = {
+  create: (data) => api.post('/payments', data),
+  getByOrderId: (orderId) => api.get(`/payments/order/${orderId}`),
+  getById: (id) => api.get(`/payments/${id}`),
+  updateStatus: (id, data) => api.put(`/payments/${id}/status`, data),
+};
+
+export const shipmentAPI = {
+  create: (data) => api.post('/shipments', data),
+  trackByOrderId: (orderId) => api.get(`/shipments/order/${orderId}/track`),
+  getById: (id) => api.get(`/shipments/${id}`),
+  updateStatus: (id, data) => api.put(`/shipments/${id}/status`, data),
 };
 
 export default api;
