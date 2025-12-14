@@ -174,9 +174,8 @@ export default function ResetPassword() {
                 <span className="text-xl sm:text-2xl font-serif text-white italic font-bold hidden">MS</span>
               </div>
               <div className="hidden sm:block">
-                <div className="text-sm sm:text-base text-gray-600 font-medium italic tracking-wide">
-                  Medina Stuff
-                </div>
+                <div className="text-base font-bold text-gray-800">MyMedina</div>
+                  <div className="text-xs text-gray-500">by Medina Stuff</div>
               </div>
             </a>
 
