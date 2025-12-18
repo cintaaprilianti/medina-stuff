@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Mail, Menu, X, CheckCircle, XCircle } from 'lucide-react';
+import { Mail, User, X, CheckCircle, XCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 function Notification({ type, message, onClose }) {
   const [isExiting, setIsExiting] = useState(false);
@@ -17,36 +18,33 @@ function Notification({ type, message, onClose }) {
   };
 
   const configs = {
-    success: { icon: CheckCircle, bgColor: 'from-green-400 to-emerald-500' },
-    error: { icon: XCircle, bgColor: 'from-red-400 to-rose-500' }
+    success: { bgColor: 'bg-green-500', shadowColor: 'shadow-green-500/50' },
+    error: { bgColor: 'bg-red-500', shadowColor: 'shadow-red-500/50' }
   };
   const config = configs[type] || configs.success;
-  const Icon = config.icon;
+  const Icon = type === 'success' ? CheckCircle : XCircle;
 
   return (
-    <div className={`fixed top-6 left-1/2 -translate-x-1/2 z-[100] transition-all duration-300 ${isExiting ? 'translate-y-[-150%] opacity-0' : 'translate-y-0 opacity-100'}`}>
-      <div className={`bg-gradient-to-r ${config.bgColor} text-white rounded-2xl shadow-2xl p-4 min-w-[320px] max-w-md border-2 border-white/30`}>
-        <div className="flex items-start space-x-3">
-          <Icon className="w-6 h-6 flex-shrink-0 mt-0.5" />
-          <p className="text-sm font-medium flex-1">{message}</p>
-          <button onClick={handleClose} className="hover:bg-white/20 rounded-full p-1 transition-all">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-        <div className="mt-3 h-1 bg-white/30 rounded-full overflow-hidden">
-          <div className="h-full bg-white rounded-full animate-progress"></div>
-        </div>
+    <div className={`fixed top-20 left-1/2 -translate-x-1/2 z-[100] transition-all duration-300 ${
+      isExiting ? '-translate-y-20 opacity-0' : 'translate-y-0 opacity-100'
+    }`}>
+      <div className={`flex items-center gap-3 ${config.bgColor} text-white rounded-full px-6 py-3.5 shadow-2xl ${config.shadowColor} min-w-[300px] max-w-lg backdrop-blur-md border border-white/20`}>
+        <Icon className="w-6 h-6 flex-shrink-0" />
+        <p className="text-sm font-medium flex-1 text-center">{message}</p>
+        <button onClick={handleClose} className="hover:bg-white/20 rounded-full p-1.5 transition-all">
+          <X className="w-5 h-5" />
+        </button>
       </div>
     </div>
   );
 }
 
 function ForgotPassword() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [email, setEmail] = useState('');
   const [isLoaded, setIsLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [notification, setNotification] = useState(null);
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
 
   useEffect(() => {
     setTimeout(() => setIsLoaded(true), 100);
@@ -100,7 +98,7 @@ function ForgotPassword() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-200 via-pink-100 to-pink-50 relative overflow-hidden flex items-center justify-center">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50 relative overflow-hidden flex items-center justify-center">
       {notification && (
         <Notification
           key={notification.id}
@@ -110,83 +108,72 @@ function ForgotPassword() {
         />
       )}
 
+      {/* Background Blob */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div 
-          className="absolute -left-40 top-0 w-[600px] h-[600px] bg-pink-300/40 rounded-full blur-3xl transition-all duration-1000"
-          style={{
-            opacity: isLoaded ? 1 : 0,
-            transform: isLoaded ? 'scale(1)' : 'scale(0.8)'
-          }}
-        ></div>
-        
-        <div 
-          className="absolute -right-40 bottom-0 w-[600px] h-[600px] bg-pink-200/40 rounded-full blur-3xl transition-all duration-1000 delay-200"
-          style={{
-            opacity: isLoaded ? 1 : 0,
-            transform: isLoaded ? 'scale(1)' : 'scale(0.8)'
-          }}
-        ></div>
-
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-pink-300/30 rounded-full blur-3xl"></div>
+        <div className="absolute -top-40 -right-40 w-96 h-96 bg-gradient-to-br from-[#cb5094] to-[#e570b3] rounded-full blur-3xl opacity-20 animate-float"></div>
+        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-br from-[#e570b3] to-[#cb5094] rounded-full blur-3xl opacity-20 animate-float-delayed"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-br from-[#cb5094]/20 to-[#e570b3]/20 rounded-full blur-3xl opacity-10 animate-spin-slow"></div>
       </div>
 
-      <nav className="fixed top-0 w-full z-50 bg-white/70 backdrop-blur-xl shadow-sm border-b border-gray-100">
+      {/* Navbar */}
+      <nav className={`fixed top-0 w-full z-50 transition-all duration-500 ${
+        window.scrollY > 20 ? 'bg-white/80 backdrop-blur-xl shadow-2xl py-2' : 'bg-white/70 backdrop-blur-md py-4'
+      }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16 sm:h-20">
-            <a href="/" className="flex items-center space-x-2 sm:space-x-3 group">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#cb5094] to-[#e570b3] rounded-full flex items-center justify-center shadow-lg group-hover:shadow-2xl transition-all duration-300 group-hover:scale-110">
-                <img 
-                  src="/logo.png" 
-                  alt="Medina Stuff Logo" 
-                  className="w-6 h-6 sm:w-8 sm:h-8 object-contain"
-                  onError={(e) => {
-                    e.target.style.display = 'none';
-                    e.target.nextElementSibling.style.display = 'block';
-                  }}
-                />
-                <span className="text-xl sm:text-2xl font-serif text-white italic font-bold hidden">MS</span>
+          <div className="flex justify-between items-center">
+            <div className="flex items-center space-x-3 group cursor-pointer">
+              <div className={`relative transition-all duration-700 ${isLoaded ? 'scale-100 rotate-0' : 'scale-0 rotate-180'}`}>
+                <div className="absolute inset-0 bg-gradient-to-br from-[#cb5094] to-[#e570b3] rounded-full blur-xl opacity-40 group-hover:opacity-70 transition-opacity"></div>
+                <div className="relative w-14 h-14 bg-gradient-to-br from-[#cb5094] via-[#e570b3] to-[#cb5094] rounded-full flex items-center justify-center shadow-lg group-hover:shadow-2xl transition-all duration-300 group-hover:scale-110 animate-pulse">
+                  <img src="/logo.png" alt="Medina Stuff Logo" className="w-9 h-9 object-contain relative z-10"
+                    onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'block'; }} />
+                  <span className="text-2xl font-serif text-white italic font-bold relative z-10 hidden">MS</span>
+                </div>
               </div>
-              <div className="hidden sm:block">
-                <div className="text-base font-bold text-gray-800">MyMedina</div>
-                  <div className="text-xs text-gray-500">by Medina Stuff</div>
+              <div className={`hidden sm:block transition-all duration-700 delay-100 ${isLoaded ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4'}`}>
+                <div className="text-xl font-bold bg-gradient-to-r from-[#cb5094] to-[#e570b3] bg-clip-text text-transparent">
+                  MyMedina
+                </div>
+                <div className="text-xs text-gray-500 font-medium">by Medina Stuff</div>
               </div>
-            </a>
-
-            <div className="hidden lg:flex items-center space-x-4">
-              <a href="/login" className="bg-[#cb5094] text-white px-6 py-2.5 rounded-full font-semibold text-sm tracking-wide hover:bg-[#b04580] hover:shadow-lg transition-all duration-300">
-                LOGIN
-              </a>
-              <a href="/signup" className="text-[#cb5094] font-semibold text-sm tracking-wide hover:underline transition-all">
-                SIGN UP
-              </a>
             </div>
 
-            <button 
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="lg:hidden p-2 hover:bg-pink-50 rounded-lg transition-all duration-300"
-            >
-              {isMenuOpen ? <X className="w-6 h-6 text-[#cb5094]" /> : <Menu className="w-6 h-6 text-[#cb5094]" />}
-            </button>
-          </div>
+            <div className="relative">
+              <button
+                onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+                className="relative p-3 hover:bg-[#fffbf8] rounded-full transition-all duration-300 group"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-[#cb5094] to-[#e570b3] rounded-full blur-md opacity-0 group-hover:opacity-30 transition-opacity"></div>
+                <User className="relative w-6 h-6 text-[#cb5094] group-hover:scale-110 transition-transform" />
+              </button>
 
-          <div 
-            className={`lg:hidden overflow-hidden transition-all duration-500 ${
-              isMenuOpen ? 'max-h-64 opacity-100 pb-4' : 'max-h-0 opacity-0'
-            }`}
-          >
-            <div className="space-y-1">
-              <a href="/login" className="block py-3 px-4 text-[#cb5094] font-semibold bg-pink-50 rounded-lg transition-all">
-                LOGIN
-              </a>
-              <a href="/signup" className="block py-3 px-4 text-gray-700 hover:text-[#cb5094] hover:bg-pink-50 rounded-lg font-semibold text-sm transition-all">
-                SIGN UP
-              </a>
+              {isProfileDropdownOpen && (
+                <div className="absolute top-16 right-0 w-48 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50 animate-fade-in">
+                  <div className="py-2">
+                    <Link
+                      to="/login"
+                      onClick={() => setIsProfileDropdownOpen(false)}
+                      className="block px-6 py-3 text-gray-800 font-medium hover:bg-gradient-to-r hover:from-[#cb5094] hover:to-[#e570b3] hover:text-white transition-all duration-300"
+                    >
+                      Login
+                    </Link>
+                    <Link
+                      to="/signup"
+                      onClick={() => setIsProfileDropdownOpen(false)}
+                      className="block px-6 py-3 text-gray-800 font-medium hover:bg-gradient-to-r hover:from-[#cb5094] hover:to-[#e570b3] hover:text-white transition-all duration-300 border-t border-gray-100"
+                    >
+                      Sign Up
+                    </Link>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </nav>
 
-      <div className="relative z-10 w-full max-w-md px-4 pt-24 pb-8">
+      {/* Form */}
+      <div className="relative z-10 w-full max-w-md px-4 pt-32 pb-8">
         <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/60 p-8 sm:p-10 transition-all duration-1000"
           style={{ opacity: isLoaded ? 1 : 0, transform: isLoaded ? 'translateY(0)' : 'translateY(30px)' }}>
           <div className="text-center mb-8">
@@ -225,14 +212,16 @@ function ForgotPassword() {
       </div>
 
       <style>{`
-        @keyframes progress { from { width: 100% } to { width: 0% } }
-        .animate-progress { animation: progress 4s linear forwards; }
-        
+        @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-20px); } }
+        @keyframes float-delayed { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-15px); } }
+        @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes fade-in { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-float { animation: float 6s ease-in-out infinite; }
+        .animate-float-delayed { animation: float-delayed 8s ease-in-out infinite; animation-delay: 1s; }
+        .animate-spin-slow { animation: spin-slow 20s linear infinite; }
+        .animate-fade-in { animation: fade-in 0.3s ease-out; }
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
-        
-        * {
-          font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-        }
+        * { font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
       `}</style>
     </div>
   );
