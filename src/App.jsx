@@ -27,6 +27,7 @@ import AdminLayout from './admin/AdminLayout';
 import CategoryManagement from './admin/CategoryManagement';
 import ProductManagement from './admin/ProductManagement';
 import ProductVariantManagement from './admin/ProductVariantManagement';
+import AdminOrders from './admin/AdminOrders';
 
 function App() {
   return (
@@ -65,6 +66,7 @@ function App() {
           <Route path="categories" element={<CategoryManagement />} />
           <Route path="products" element={<ProductManagement />} />
           <Route path="products/:productId/variants" element={<ProductVariantManagement />} />
+          <Route path="/admin/orders" element={<AdminOrders />} />
         </Route>
       </Routes>
     </Router>

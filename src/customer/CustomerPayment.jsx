@@ -59,7 +59,14 @@ function CustomerPayment() {
       setLoading(true);
       
       const orderResponse = await api.get(`/orders/${orderId}`);
-      setOrder(orderResponse.data.order);
+      const orderData = orderResponse.data.order;
+      setOrder({
+        ...orderData,
+        items: orderData.items.map(item => ({
+          ...item,
+          gambarUrl: item.variant?.gambar || item.product?.gambarUtama || (item.product?.gambarUrl ? item.product.gambarUrl.split('|||')[0] : 'https://via.placeholder.com/100?text=No+Image')
+        }))
+      });
 
       try {
         const paymentResponse = await api.get(`/payments/order/${orderId}`);
@@ -75,7 +82,7 @@ function CustomerPayment() {
       }
     } catch (error) {
       console.error('Error loading data:', error);
-      toast.error('Gagal memuat data pesanan');
+      toast.error('Gagal memuat data pesanan: ' + (error.response?.data?.message || error.message));
       navigate('/customer/orders');
     } finally {
       setLoading(false);
@@ -98,6 +105,7 @@ function CustomerPayment() {
       }
     } catch (error) {
       console.error('Error checking payment:', error);
+      toast.error('Gagal memeriksa status pembayaran: ' + (error.response?.data?.message || error.message));
     }
   };
 
@@ -119,7 +127,7 @@ function CustomerPayment() {
       }
     } catch (error) {
       console.error('Error creating payment:', error);
-      toast.error(error.response?.data?.message || 'Gagal membuat pembayaran');
+      toast.error('Gagal membuat pembayaran: ' + (error.response?.data?.message || error.message));
     } finally {
       setCreating(false);
     }
@@ -364,6 +372,12 @@ function CustomerPayment() {
               <div className="space-y-3">
                 {order.items.map((item, idx) => (
                   <div key={idx} className="flex gap-3 p-3 bg-gray-50 rounded-xl">
+                    <img
+                      src={item.gambarUrl}
+                      alt={item.namaProduk}
+                      className="w-20 h-20 object-cover rounded-lg"
+                      onError={(e) => e.target.src = 'https://via.placeholder.com/100?text=No+Image'}
+                    />
                     <div className="flex-1">
                       <h4 className="font-bold text-gray-900 text-sm">{item.namaProduk}</h4>
                       <p className="text-xs text-gray-600">

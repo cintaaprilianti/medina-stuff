@@ -1,18 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import {
-  Menu, X, PackageSearch, FolderTree, ClipboardList, CreditCard, Settings, LogOut
+  PackageSearch, FolderTree, ClipboardList, CreditCard, LogOut
 } from 'lucide-react';
 
 function AdminLayout({ children }) {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [adminData, setAdminData] = useState({
     nama: 'Admin',
     email: 'admin@medinastuff.com',
-    role: 'admin'
+    role: 'ADMIN'
   });
-  
+
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -23,7 +22,6 @@ function AdminLayout({ children }) {
         const storedUser = localStorage.getItem('user');
 
         if (!token || !storedUser) {
-          console.log('No token/user found → redirect to login');
           navigate('/login', { replace: true });
           return;
         }
@@ -31,23 +29,21 @@ function AdminLayout({ children }) {
         const user = JSON.parse(storedUser);
         const userRole = (user.role || '').toString().trim().toUpperCase();
 
-        setAdminData({
-          nama: user.nama || 'Admin',
-          email: user.email || 'admin@medinastuff.com',
-          role: userRole
-        });
-
         if (userRole !== 'ADMIN') {
-          console.log('Access denied. Role:', userRole);
           if (userRole === 'CUSTOMER') {
-            navigate('/dashboard', { replace: true });
+            navigate('/customer/products', { replace: true });
           } else {
             navigate('/login', { replace: true });
           }
           return;
         }
 
-        console.log('Admin access granted:', user.nama);
+        setAdminData({
+          nama: user.nama || 'Admin',
+          email: user.email || 'admin@medinastuff.com',
+          role: userRole
+        });
+
       } catch (err) {
         console.error('Error parsing user data:', err);
         localStorage.clear();
@@ -89,30 +85,20 @@ function AdminLayout({ children }) {
     { path: '/admin/categories', icon: FolderTree, label: 'Kategori' },
     { path: '/admin/orders', icon: ClipboardList, label: 'Pesanan' },
     { path: '/admin/transactions', icon: CreditCard, label: 'Transaksi' },
-    { path: '/admin/settings', icon: Settings, label: 'Pengaturan' },
   ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      <nav className="fixed top-0 w-full z-50 bg-white/95 backdrop-blur-lg shadow-xl border-b border-gray-200">
+      {/* Navbar */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-lg shadow-xl border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
-              <button
-                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                className="lg:hidden p-2 hover:bg-pink-50 rounded-lg transition"
-              >
-                {isSidebarOpen ? <X className="w-6 h-6 text-[#cb5094]" /> : <Menu className="w-6 h-6 text-[#cb5094]" />}
-              </button>
-
-              <a 
-                href="/admin/dashboard" 
-                className="flex items-center space-x-3 group"
-              >
+              <a href="/admin/products" className="flex items-center space-x-3 group">
                 <div className="relative w-12 h-12 bg-gradient-to-br from-[#cb5094] to-[#e570b3] rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-all duration-300 overflow-hidden">
                   <img
                     src="/logo.png"
-                    alt="Medina Stuff"
+                    alt="MyMedina"
                     className="w-8 h-8 object-contain z-10"
                     onError={(e) => {
                       e.target.style.display = 'none';
@@ -120,7 +106,7 @@ function AdminLayout({ children }) {
                     }}
                   />
                   <span className="absolute inset-0 flex items-center justify-center text-2xl font-bold text-white z-10 hidden">
-                    MS
+                    MM
                   </span>
                 </div>
                 <div className="hidden sm:block">
@@ -144,23 +130,20 @@ function AdminLayout({ children }) {
         </div>
       </nav>
 
-      <div className="flex pt-16 min-h-screen">
-        <aside className={`fixed lg:static inset-y-0 left-0 z-40 w-64 bg-white shadow-2xl transform transition-transform duration-300 pt-16 lg:pt-0 ${
-          isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-        }`}>
+      {/* Layout Utama */}
+      <div className="pt-16 min-h-screen pb-20 lg:pb-0 flex">
+        {/* Sidebar Desktop - PERSIS seperti di AdminDashboard yang kamu bilang pas */}
+        <aside className="hidden lg:block w-64 bg-white shadow-2xl fixed top-16 left-0 h-[calc(100vh-4rem)] overflow-y-auto">
           <div className="h-full flex flex-col">
             <nav className="flex-1 p-6 space-y-2">
               {menuItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = isActiveRoute(item.path);
-                
+
                 return (
                   <button
                     key={item.path}
-                    onClick={() => {
-                      navigate(item.path);
-                      setIsSidebarOpen(false);
-                    }}
+                    onClick={() => navigate(item.path)}
                     className={`w-full flex items-center space-x-3 px-5 py-4 rounded-2xl transition-all duration-200 font-medium ${
                       isActive
                         ? 'bg-gradient-to-r from-[#cb5094] to-[#e570b3] text-white shadow-lg'
@@ -168,34 +151,66 @@ function AdminLayout({ children }) {
                     }`}
                   >
                     <Icon className="w-5 h-5" />
-                    <span>{item.label}</span>
+                    <span className="flex-1 text-left">{item.label}</span>
                   </button>
                 );
               })}
             </nav>
 
+            {/* Logout - PERSIS seperti di AdminDashboard */}
             <div className="p-6 border-t border-gray-200">
               <button
                 onClick={handleLogout}
                 className="w-full flex items-center space-x-3 px-5 py-4 rounded-2xl text-red-600 hover:bg-red-50 transition-all duration-200 font-medium"
               >
                 <LogOut className="w-5 h-5" />
-                <span>Keluar</span>
+                <span>Logout</span>
               </button>
             </div>
           </div>
         </aside>
 
-        {isSidebarOpen && (
-          <div className="fixed inset-0 bg-black/50 z-30 lg:hidden" onClick={() => setIsSidebarOpen(false)} />
-        )}
-
-        <main className="flex-1 p-6 lg:p-10">
-          <div className="max-w-7xl mx-auto">
+        {/* Main Content */}
+        <main className="flex-1 px-4 sm:px-6 lg:px-8 lg:ml-64">
+          <div className="max-w-7xl mx-auto py-6">
             {children || <Outlet />}
           </div>
         </main>
       </div>
+
+      {/* Bottom Navigation Mobile - 5 kolom dengan Keluar di paling kanan */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-2xl lg:hidden z-50">
+        <div className="grid grid-cols-5 h-16">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = isActiveRoute(item.path);
+
+            return (
+              <button
+                key={item.path}
+                onClick={() => navigate(item.path)}
+                className={`flex flex-col items-center justify-center space-y-1 relative transition-all duration-200 ${
+                  isActive ? 'text-[#cb5094]' : 'text-gray-600'
+                }`}
+              >
+                <Icon className="w-6 h-6" />
+                <span className="text-[10px] font-medium">{item.label}</span>
+                {isActive && (
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-gradient-to-r from-[#cb5094] to-[#e570b3] rounded-b-full"></div>
+                )}
+              </button>
+            );
+          })}
+
+          <button
+            onClick={handleLogout}
+            className="flex flex-col items-center justify-center space-y-1 text-red-600"
+          >
+            <LogOut className="w-6 h-6" />
+            <span className="text-[10px] font-medium">Logout</span>
+          </button>
+        </div>
+      </nav>
     </div>
   );
 }

@@ -144,9 +144,14 @@ function CustomerCheckout() {
                   {cart.map((item, idx) => (
                     <div key={idx} className="flex gap-4 p-4 bg-gray-50 rounded-xl">
                       <img
-                        src={item.gambarUtama || 'https://via.placeholder.com/100'}
+                        src={
+                          item.variantImageUrl || 
+                          (item.gambarUrl?.split('|||')[0]) || 
+                          'https://via.placeholder.com/100?text=No+Image'
+                        }
                         alt={item.nama}
                         className="w-20 h-20 object-cover rounded-lg"
+                        onError={(e) => e.target.src = 'https://via.placeholder.com/100?text=No+Image'}
                       />
                       <div className="flex-1">
                         <h3 className="font-bold text-gray-900">{item.nama}</h3>
