@@ -34,7 +34,7 @@ function CustomerDashboard() {
         const storedUser = localStorage.getItem('user');
 
         if (!token || !storedUser) {
-          navigate('/login', { replace: true });
+          setIsLoading(false);
           return;
         }
 
@@ -42,7 +42,7 @@ function CustomerDashboard() {
         const role = (user.role || '').toString().trim().toUpperCase();
 
         if (role === 'ADMIN') {
-          navigate('/admin/dashboard', { replace: true });
+          setIsLoading(false);
           return;
         }
 
@@ -57,19 +57,17 @@ function CustomerDashboard() {
         setUserData(updatedUser);
 
         if (location.pathname === '/customer' || location.pathname === '/customer/') {
-          navigate('/customer/products', { replace: true });
+          // Don't navigate, just set loading false
         }
       } catch (err) {
         console.error('Error parsing user:', err);
-        localStorage.clear();
-        navigate('/login', { replace: true });
       } finally {
         setIsLoading(false);
       }
     };
 
     checkAuth();
-  }, [navigate, location.pathname]);
+  }, [location.pathname]);
 
   useEffect(() => {
     const updateCounts = () => {
@@ -86,9 +84,13 @@ function CustomerDashboard() {
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('user');
-    navigate('/', { replace: true });
+    try {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('user');
+      window.location.href = '/';
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
   };
 
   const getInitials = (name) => {
@@ -125,7 +127,7 @@ function CustomerDashboard() {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-lg shadow-xl border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            {/* Logo - Dikecilkan */}
+            {/* Logo */}
             <div className="flex items-center space-x-3">
               <button
                 onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -186,10 +188,9 @@ function CustomerDashboard() {
         </div>
       </nav>
 
-      <div className="pt-20 lg:pt-24 min-h-screen pb-20 lg:pb-0 flex">
-        <aside className={`fixed lg:static top-16 lg:top-0 left-0 z-40 w-64 bg-white shadow-2xl transform transition-transform duration-300 h-[calc(100vh-4rem)] lg:h-screen hidden lg:block ${
-          isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-        }`}>
+      <div className="pt-16 min-h-screen pb-20 lg:pb-0 flex">
+        {/* Sidebar Desktop - Menu lengkap */}
+        <aside className="hidden lg:block fixed top-16 left-0 z-40 w-64 bg-white shadow-2xl h-[calc(100vh-4rem)]">
           <div className="h-full flex flex-col overflow-y-auto">
             <nav className="flex-1 p-6 space-y-2">
               {menuItems.map((item) => {
@@ -199,10 +200,7 @@ function CustomerDashboard() {
                 return (
                   <button
                     key={item.path}
-                    onClick={() => {
-                      navigate(item.path);
-                      setIsSidebarOpen(false);
-                    }}
+                    onClick={() => navigate(item.path)}
                     className={`w-full flex items-center space-x-3 px-5 py-4 rounded-2xl transition-all duration-200 font-medium ${
                       isActive
                         ? 'bg-gradient-to-r from-[#cb5094] to-[#e570b3] text-white shadow-lg'
@@ -223,15 +221,34 @@ function CustomerDashboard() {
               })}
             </nav>
 
+            {/* Logout Button di Sidebar Desktop */}
             <div className="p-6 border-t border-gray-200">
               <button
                 onClick={handleLogout}
                 className="w-full flex items-center space-x-3 px-5 py-4 rounded-2xl text-red-600 hover:bg-red-50 transition-all duration-200 font-medium"
               >
                 <LogOut className="w-5 h-5" />
-                <span>Keluar</span>
+                <span>Logout</span>
               </button>
             </div>
+          </div>
+        </aside>
+
+        {/* Menu Hamburger Mobile - Hanya Logout */}
+        <aside className={`lg:hidden fixed top-16 left-0 z-40 w-64 bg-white shadow-2xl transform transition-transform duration-300 h-auto ${
+          isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}>
+          <div className="p-6">
+            <button
+              onClick={() => {
+                handleLogout();
+                setIsSidebarOpen(false);
+              }}
+              className="w-full flex items-center space-x-3 px-5 py-4 rounded-2xl text-red-600 hover:bg-red-50 transition-all duration-200 font-medium"
+            >
+              <LogOut className="w-5 h-5" />
+              <span>Logout</span>
+            </button>
           </div>
         </aside>
 
@@ -241,7 +258,7 @@ function CustomerDashboard() {
         )}
 
         {/* Main Content */}
-        <main className="flex-1 px-4 sm:px-6 lg:px-8">
+        <main className="flex-1 px-4 sm:px-6 lg:px-8 lg:ml-64 pt-6">
           <div className="max-w-7xl mx-auto">
             <Outlet context={{ searchQuery, userData, setCartCount, setWishlistCount }} />
           </div>

@@ -1,16 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import {
-  PackageSearch, FolderTree, ClipboardList, CreditCard, LogOut, Home, Menu, X
+  BarChart3, LogOut, Home
 } from 'lucide-react';
 
-function AdminLayout({ children }) {
+function OwnerLayout({ children }) {
   const [isLoading, setIsLoading] = useState(true);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [adminData, setAdminData] = useState({
-    nama: 'Admin',
-    email: 'admin@medinastuff.com',
-    role: 'ADMIN'
+  const [ownerData, setOwnerData] = useState({
+    nama: 'Owner',
+    email: 'owner@medinastuff.com',
+    role: 'OWNER'
   });
 
   const navigate = useNavigate();
@@ -30,8 +29,11 @@ function AdminLayout({ children }) {
         const user = JSON.parse(storedUser);
         const userRole = (user.role || '').toString().trim().toUpperCase();
 
-        if (userRole !== 'ADMIN') {
-          if (userRole === 'CUSTOMER') {
+        // Hanya izinkan OWNER
+        if (userRole !== 'OWNER') {
+          if (userRole === 'ADMIN') {
+            navigate('/admin/dashboard', { replace: true });
+          } else if (userRole === 'CUSTOMER') {
             navigate('/customer/products', { replace: true });
           } else {
             navigate('/login', { replace: true });
@@ -39,9 +41,9 @@ function AdminLayout({ children }) {
           return;
         }
 
-        setAdminData({
-          nama: user.nama || 'Admin',
-          email: user.email || 'admin@medinastuff.com',
+        setOwnerData({
+          nama: user.nama || 'Owner',
+          email: user.email || 'owner@medinastuff.com',
           role: userRole
         });
 
@@ -75,18 +77,14 @@ function AdminLayout({ children }) {
       <div className="min-h-screen bg-gradient-to-br from-[#cb5094] to-[#e570b3] flex items-center justify-center">
         <div className="text-white text-center">
           <div className="w-20 h-20 border-4 border-white/30 border-t-white rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-xl font-semibold">Loading Admin Panel...</p>
+          <p className="text-xl font-semibold">Loading Owner Panel...</p>
         </div>
       </div>
     );
   }
 
   const menuItems = [
-    { path: '/admin/dashboard', icon: Home, label: 'Beranda' },
-    { path: '/admin/products', icon: PackageSearch, label: 'Produk' },
-    { path: '/admin/categories', icon: FolderTree, label: 'Kategori' },
-    { path: '/admin/orders', icon: ClipboardList, label: 'Pesanan' },
-    { path: '/admin/transactions', icon: CreditCard, label: 'Transaksi' },
+    { path: '/owner/dashboard', icon: BarChart3, label: 'Dashboard' },
   ];
 
   return (
@@ -96,15 +94,7 @@ function AdminLayout({ children }) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
-              {/* Tombol Hamburger untuk Mobile */}
-              <button
-                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                className="lg:hidden p-2 hover:bg-pink-50 rounded-lg transition"
-              >
-                {isSidebarOpen ? <X className="w-6 h-6 text-[#cb5094]" /> : <Menu className="w-6 h-6 text-[#cb5094]" />}
-              </button>
-
-              <a href="/admin/dashboard" className="flex items-center space-x-3 group">
+              <a href="/owner/dashboard" className="flex items-center space-x-3 group">
                 <div className="relative w-12 h-12 bg-gradient-to-br from-[#cb5094] to-[#e570b3] rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-all duration-300 overflow-hidden">
                   <img
                     src="/logo.png"
@@ -129,10 +119,11 @@ function AdminLayout({ children }) {
             <div className="flex items-center space-x-4">
               <div className="hidden sm:flex items-center space-x-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-[#cb5094] to-[#e570b3] rounded-full flex items-center justify-center shadow-md">
-                  <span className="text-sm font-bold text-white">{getInitials(adminData.nama)}</span>
+                  <span className="text-sm font-bold text-white">{getInitials(ownerData.nama)}</span>
                 </div>
                 <div>
-                  <div className="text-sm font-bold text-gray-800">{adminData.nama}</div>
+                  <div className="text-sm font-bold text-gray-800">{ownerData.nama}</div>
+                  <div className="text-xs text-gray-500">Owner</div>
                 </div>
               </div>
             </div>
@@ -142,7 +133,7 @@ function AdminLayout({ children }) {
 
       {/* Layout Utama */}
       <div className="pt-16 min-h-screen pb-20 lg:pb-0 flex">
-        {/* Sidebar Desktop - Menu Lengkap */}
+        {/* Sidebar Desktop */}
         <aside className="hidden lg:block w-64 bg-white shadow-2xl fixed top-16 left-0 h-[calc(100vh-4rem)] overflow-y-auto">
           <div className="h-full flex flex-col">
             <nav className="flex-1 p-6 space-y-2">
@@ -167,7 +158,7 @@ function AdminLayout({ children }) {
               })}
             </nav>
 
-            {/* Logout Desktop */}
+            {/* Logout */}
             <div className="p-6 border-t border-gray-200">
               <button
                 onClick={handleLogout}
@@ -180,38 +171,17 @@ function AdminLayout({ children }) {
           </div>
         </aside>
 
-        {/* Menu Hamburger Mobile - Hanya Logout */}
-        <aside className={`lg:hidden fixed top-16 left-0 z-40 w-64 bg-white shadow-2xl transform transition-transform duration-300 h-auto ${
-          isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}>
-          <div className="p-6">
-            <button
-              onClick={() => {
-                handleLogout();
-                setIsSidebarOpen(false);
-              }}
-              className="w-full flex items-center space-x-3 px-5 py-4 rounded-2xl text-red-600 hover:bg-red-50 transition-all duration-200 font-medium"
-            >
-              <LogOut className="w-5 h-5" />
-              <span>Logout</span>
-            </button>
-          </div>
-        </aside>
-
-        {/* Overlay Sidebar Mobile */}
-        {isSidebarOpen && (
-          <div className="fixed inset-0 bg-black/50 z-30 lg:hidden" onClick={() => setIsSidebarOpen(false)} />
-        )}
-
         {/* Main Content */}
-        <main className="flex-1 lg:ml-64">
+        <main className="flex-1 px-4 sm:px-6 lg:px-8 lg:ml-64">
+          <div className="max-w-7xl mx-auto py-6">
             {children || <Outlet />}
+          </div>
         </main>
       </div>
 
-      {/* Bottom Navigation Mobile - Tanpa Logout */}
+      {/* Bottom Navigation Mobile */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-2xl lg:hidden z-50">
-        <div className="grid grid-cols-5 h-16">
+        <div className="grid grid-cols-2 h-16">
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = isActiveRoute(item.path);
@@ -225,17 +195,25 @@ function AdminLayout({ children }) {
                 }`}
               >
                 <Icon className="w-6 h-6" />
-                <span className="text-[10px] font-medium">{item.label}</span>
+                <span className="text-xs font-medium">{item.label}</span>
                 {isActive && (
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-gradient-to-r from-[#cb5094] to-[#e570b3] rounded-b-full"></div>
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-1 bg-gradient-to-r from-[#cb5094] to-[#e570b3] rounded-b-full"></div>
                 )}
               </button>
             );
           })}
+
+          <button
+            onClick={handleLogout}
+            className="flex flex-col items-center justify-center space-y-1 text-red-600"
+          >
+            <LogOut className="w-6 h-6" />
+            <span className="text-xs font-medium">Logout</span>
+          </button>
         </div>
       </nav>
     </div>
   );
 }
 
-export default AdminLayout;
+export default OwnerLayout;

@@ -1,6 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { CreditCard, Clock, CheckCircle, XCircle, AlertCircle, ExternalLink, Package } from 'lucide-react';
+import { 
+  CreditCard, Clock, CheckCircle, XCircle, AlertCircle, 
+  ExternalLink, Package, ArrowLeft, RefreshCw
+} from 'lucide-react';
 import api from '../utils/api';
 import { formatPrice } from '../utils/formatPrice';
 import toast from 'react-hot-toast';
@@ -14,29 +17,34 @@ function CustomerPayment() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState('BANK_TRANSFER');
+  const [timeRemaining, setTimeRemaining] = useState('');
+
+  // Use ref to prevent race conditions
+  const intervalRef = useRef(null);
+  const timerRef = useRef(null);
 
   const paymentMethods = [
     { 
       value: 'BANK_TRANSFER', 
-      label: 'Bank Transfer', 
+      label: 'Virtual Account', 
       icon: '🏦',
-      description: 'BCA, BNI, Mandiri, BRI'
+      description: 'Transfer via BCA, BNI, BRI, Mandiri'
     },
     { 
       value: 'QRIS', 
       label: 'QRIS', 
       icon: '📱',
-      description: 'Scan QR dengan e-wallet'
+      description: 'Scan QR dengan GoPay, OVO, Dana, ShopeePay'
     },
     { 
       value: 'E_WALLET', 
       label: 'E-Wallet', 
-      icon: '💳',
-      description: 'GoPay, OVO, Dana, ShopeePay'
+      icon: '💼',
+      description: 'GoPay, OVO, Dana, LinkAja'
     },
     { 
       value: 'CREDIT_CARD', 
-      label: 'Credit Card', 
+      label: 'Kartu Kredit', 
       icon: '💳',
       description: 'Visa, Mastercard, JCB'
     }
@@ -44,15 +52,38 @@ function CustomerPayment() {
 
   useEffect(() => {
     loadOrderAndPayment();
-    
-    const interval = setInterval(() => {
-      if (payment && payment.status === 'PENDING') {
-        checkPaymentStatus();
-      }
-    }, 10000);
 
-    return () => clearInterval(interval);
-  }, [orderId, payment?.status]);
+    return () => {
+      // Cleanup intervals on unmount
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [orderId]);
+
+  // Separate effect for managing auto-refresh
+  useEffect(() => {
+    // Clear existing intervals
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (timerRef.current) clearInterval(timerRef.current);
+
+    if (payment && payment.status === 'PENDING') {
+      // Auto-refresh payment status
+      intervalRef.current = setInterval(() => {
+        checkPaymentStatus();
+      }, 5000);
+
+      // Update countdown timer
+      updateTimer(); // Initial call
+      timerRef.current = setInterval(() => {
+        updateTimer();
+      }, 1000);
+    }
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [payment?.status, payment?.id]); // Only depend on status and id
 
   const loadOrderAndPayment = async () => {
     try {
@@ -64,25 +95,30 @@ function CustomerPayment() {
         ...orderData,
         items: orderData.items.map(item => ({
           ...item,
-          gambarUrl: item.variant?.gambar || item.product?.gambarUtama || (item.product?.gambarUrl ? item.product.gambarUrl.split('|||')[0] : 'https://via.placeholder.com/100?text=No+Image')
+          gambarUrl: item.variant?.gambar || 
+                     item.product?.gambarUtama || 
+                     (item.product?.gambarUrl ? item.product.gambarUrl.split('|||')[0] : null) || 
+                     'https://via.placeholder.com/100?text=No+Image'
         }))
       });
 
+      // Load payment data
       try {
         const paymentResponse = await api.get(`/payments/order/${orderId}`);
         const payments = paymentResponse.data.payments || [];
-      
-        const activePayment = payments.find(p => 
-          p.status === 'PENDING' || p.status === 'SETTLEMENT'
-        ) || payments[0];
         
+        // Prioritas: PENDING > SETTLEMENT > lainnya
+        const activePayment = payments.find(p => p.status === 'PENDING') || 
+                             payments.find(p => p.status === 'SETTLEMENT') ||
+                             payments[0];
         setPayment(activePayment);
       } catch (err) {
+        // No payment yet - this is okay
         setPayment(null);
       }
     } catch (error) {
-      console.error('Error loading data:', error);
-      toast.error('Gagal memuat data pesanan: ' + (error.response?.data?.message || error.message));
+      const errMsg = error.response?.data?.message || 'Gagal memuat data pesanan';
+      toast.error(errMsg);
       navigate('/customer/orders');
     } finally {
       setLoading(false);
@@ -93,7 +129,7 @@ function CustomerPayment() {
     try {
       const paymentResponse = await api.get(`/payments/order/${orderId}`);
       const payments = paymentResponse.data.payments || [];
-      const latestPayment = payments[0];
+      const latestPayment = payments.find(p => p.id === payment?.id);
       
       if (latestPayment && latestPayment.status !== payment?.status) {
         setPayment(latestPayment);
@@ -101,12 +137,38 @@ function CustomerPayment() {
         if (latestPayment.status === 'SETTLEMENT') {
           toast.success('Pembayaran berhasil dikonfirmasi!');
           setTimeout(() => navigate('/customer/orders'), 2000);
+        } else if (['EXPIRE', 'CANCEL', 'DENY'].includes(latestPayment.status)) {
+          toast.error('Pembayaran gagal atau kadaluarsa');
         }
       }
     } catch (error) {
-      console.error('Error checking payment:', error);
-      toast.error('Gagal memeriksa status pembayaran: ' + (error.response?.data?.message || error.message));
+      // Silent error - don't disturb user
+      console.error('Failed to check payment status:', error);
     }
+  };
+
+  const updateTimer = () => {
+    if (!payment || payment.status !== 'PENDING' || !payment.kadaluarsaPada) {
+      setTimeRemaining('');
+      return;
+    }
+    
+    const now = new Date();
+    const expiry = new Date(payment.kadaluarsaPada);
+    const diff = expiry - now;
+    
+    if (diff <= 0) {
+      setTimeRemaining('Kadaluarsa');
+      // Trigger refresh to update status
+      checkPaymentStatus();
+      return;
+    }
+    
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+    
+    setTimeRemaining(`${hours}j ${minutes}m ${seconds}d`);
   };
 
   const createPayment = async () => {
@@ -120,14 +182,24 @@ function CustomerPayment() {
 
       const newPayment = response.data.payment;
       setPayment(newPayment);
-      toast.success('Payment link berhasil dibuat!');
+      toast.success('Link pembayaran berhasil dibuat!');
 
       if (newPayment.urlPembayaran) {
         window.open(newPayment.urlPembayaran, '_blank');
       }
     } catch (error) {
-      console.error('Error creating payment:', error);
-      toast.error('Gagal membuat pembayaran: ' + (error.response?.data?.message || error.message));
+      const errMsg = error.response?.data?.message || error.message || 'Gagal membuat pembayaran';
+      
+      // Handle specific error cases
+      if (errMsg.includes('tidak dapat dibayar') || 
+          errMsg.includes('sudah memiliki pembayaran') ||
+          errMsg.includes('status') ||
+          errMsg.includes('PENDING')) {
+        toast.error(errMsg);
+        loadOrderAndPayment(); // Refresh to get latest state
+      } else {
+        toast.error(errMsg);
+      }
     } finally {
       setCreating(false);
     }
@@ -135,36 +207,18 @@ function CustomerPayment() {
 
   const getPaymentStatusConfig = (status) => {
     const configs = {
-      PENDING: {
-        label: 'Menunggu Pembayaran',
-        icon: Clock,
-        color: 'bg-yellow-100 text-yellow-700 border-yellow-300'
-      },
-      SETTLEMENT: {
-        label: 'Pembayaran Berhasil',
-        icon: CheckCircle,
-        color: 'bg-green-100 text-green-700 border-green-300'
-      },
-      EXPIRE: {
-        label: 'Kadaluarsa',
-        icon: XCircle,
-        color: 'bg-red-100 text-red-700 border-red-300'
-      },
-      CANCEL: {
-        label: 'Dibatalkan',
-        icon: XCircle,
-        color: 'bg-red-100 text-red-700 border-red-300'
-      },
-      DENY: {
-        label: 'Ditolak',
-        icon: XCircle,
-        color: 'bg-red-100 text-red-700 border-red-300'
-      }
+      PENDING: { label: 'Menunggu Pembayaran', icon: Clock, color: 'bg-yellow-100 text-yellow-800 border-yellow-300' },
+      SETTLEMENT: { label: 'Berhasil', icon: CheckCircle, color: 'bg-green-100 text-green-800 border-green-300' },
+      EXPIRE: { label: 'Kadaluarsa', icon: XCircle, color: 'bg-red-100 text-red-800 border-red-300' },
+      CANCEL: { label: 'Dibatalkan', icon: XCircle, color: 'bg-red-100 text-red-800 border-red-300' },
+      DENY: { label: 'Ditolak', icon: XCircle, color: 'bg-red-100 text-red-800 border-red-300' },
+      REFUND: { label: 'Dikembalikan', icon: AlertCircle, color: 'bg-blue-100 text-blue-800 border-blue-300' }
     };
     return configs[status] || configs.PENDING;
   };
 
   const formatDateTime = (dateString) => {
+    if (!dateString) return '-';
     return new Date(dateString).toLocaleString('id-ID', {
       day: 'numeric',
       month: 'long',
@@ -174,25 +228,35 @@ function CustomerPayment() {
     });
   };
 
-  const getTimeRemaining = (expiryDate) => {
-    const now = new Date();
-    const expiry = new Date(expiryDate);
-    const diff = expiry - now;
+  const canCreatePayment = () => {
+    if (!order) return false;
     
-    if (diff <= 0) return 'Expired';
-    
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    
-    return `${hours}h ${minutes}m`;
+    // Check if there's already a pending payment
+    if (payment && payment.status === 'PENDING') {
+      return false;
+    }
+
+    // Check if payment is already successful
+    if (payment && payment.status === 'SETTLEMENT') {
+      return false;
+    }
+
+    // Allow payment for PENDING_PAYMENT status (and similar statuses)
+    // Restrict only for cancelled/completed/shipped orders
+    const unPayableStatuses = ['CANCELLED', 'COMPLETED', 'SHIPPED', 'DELIVERED'];
+    if (unPayableStatuses.includes(order.status)) {
+      return false;
+    }
+
+    return true;
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="min-h-screen bg-gradient-to-br from-pink-50/30 via-white to-pink-50/20 flex items-center justify-center py-20">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-pink-500/30 border-t-pink-500 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading payment...</p>
+          <div className="w-16 h-16 border-4 border-pink-200 border-t-[#cb5094] rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600 font-medium">Memuat detail pembayaran...</p>
         </div>
       </div>
     );
@@ -200,15 +264,15 @@ function CustomerPayment() {
 
   if (!order) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
+      <div className="min-h-screen bg-gradient-to-br from-pink-50/30 via-white to-pink-50/20 flex items-center justify-center py-20">
+        <div className="text-center bg-white rounded-2xl shadow-xl p-8 max-w-md border border-pink-100">
           <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Order Not Found</h2>
+          <h2 className="text-xl font-bold text-gray-800 mb-2">Pesanan Tidak Ditemukan</h2>
           <button
             onClick={() => navigate('/customer/orders')}
-            className="mt-4 bg-pink-500 text-white px-6 py-2 rounded-xl font-bold hover:bg-pink-600 transition"
+            className="mt-6 bg-[#cb5094] text-white px-8 py-3 rounded-xl font-bold hover:bg-[#b34583] transition-all"
           >
-            Back to Orders
+            Kembali ke Pesanan
           </button>
         </div>
       </div>
@@ -219,60 +283,66 @@ function CustomerPayment() {
   const StatusIcon = statusConfig?.icon;
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4">
-        <div className="mb-6">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50/30 via-white to-pink-50/20 pb-20 lg:pb-0">
+      <div className="max-w-7xl mx-auto p-4 md:p-6 lg:p-8 space-y-8">
+        {/* Header */}
+        <div className="bg-white rounded-3xl shadow-sm border border-pink-100 p-5 md:p-6">
           <button
             onClick={() => navigate('/customer/orders')}
-            className="text-pink-500 font-semibold mb-2 hover:underline"
+            className="flex items-center gap-2 text-[#cb5094] font-medium hover:underline mb-4"
           >
-            ← Back to Orders
+            <ArrowLeft className="w-5 h-5" />
+            Kembali ke Pesanan
           </button>
-          <h1 className="text-2xl font-bold text-gray-900">Payment</h1>
-          <p className="text-gray-600">Order {order.nomorOrder}</p>
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 lg:w-14 lg:h-14 bg-[#cb5094] rounded-2xl flex items-center justify-center shadow-md">
+                <CreditCard className="w-6 h-6 lg:w-8 lg:h-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Pembayaran Pesanan</h1>
+                <p className="text-gray-500 text-sm lg:text-base">Nomor Pesanan: <span className="font-bold">{order.nomorOrder}</span></p>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-6">
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
+            {/* Status Pembayaran */}
             {payment && (
-              <div className="bg-white rounded-2xl shadow-lg p-6">
+              <div className="bg-white rounded-2xl shadow-md border border-pink-100 p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-bold text-gray-900">Payment Status</h2>
+                  <h2 className="text-lg font-bold text-gray-900">Status Pembayaran</h2>
                   {payment.status === 'PENDING' && (
                     <button
                       onClick={checkPaymentStatus}
-                      className="text-sm text-pink-500 font-semibold hover:underline"
+                      className="text-sm text-[#cb5094] font-medium hover:underline flex items-center gap-1"
                     >
-                      Refresh Status
+                      <RefreshCw className="w-4 h-4" />
+                      Refresh
                     </button>
                   )}
                 </div>
 
-                <div className={`flex items-center gap-3 p-4 rounded-xl border-2 ${statusConfig.color} mb-4`}>
-                  <StatusIcon className="w-6 h-6" />
+                <div className={`flex items-center gap-4 p-5 rounded-xl border-2 ${statusConfig.color}`}>
+                  <StatusIcon className="w-8 h-8" />
                   <div className="flex-1">
-                    <div className="font-bold">{statusConfig.label}</div>
-                    <div className="text-sm">Transaction ID: {payment.transactionId}</div>
+                    <p className="font-bold text-lg">{statusConfig.label}</p>
+                    <p className="text-sm text-gray-600">ID Transaksi: {payment.transactionId}</p>
                   </div>
                 </div>
 
                 {payment.status === 'PENDING' && (
-                  <>
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-4">
-                      <div className="flex items-start gap-3">
-                        <Clock className="w-5 h-5 text-yellow-600 mt-0.5" />
-                        <div className="flex-1">
-                          <div className="font-semibold text-yellow-800 mb-1">
-                            Complete payment before it expires
-                          </div>
-                          <div className="text-sm text-yellow-700">
-                            Expires in: <span className="font-bold">
-                              {getTimeRemaining(payment.kadaluarsaPada)}
-                            </span>
-                          </div>
-                          <div className="text-xs text-yellow-600 mt-1">
-                            {formatDateTime(payment.kadaluarsaPada)}
-                          </div>
+                  <div className="mt-6 space-y-4">
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+                      <div className="flex items-center gap-3">
+                        <Clock className="w-6 h-6 text-yellow-600" />
+                        <div>
+                          <p className="font-semibold text-yellow-800">Sisa waktu pembayaran</p>
+                          <p className="text-2xl font-bold text-yellow-900">{timeRemaining || 'Menghitung...'}</p>
+                          <p className="text-xs text-yellow-700">Kadaluarsa: {formatDateTime(payment.kadaluarsaPada)}</p>
                         </div>
                       </div>
                     </div>
@@ -282,67 +352,70 @@ function CustomerPayment() {
                         href={payment.urlPembayaran}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center justify-center gap-2 w-full bg-pink-500 text-white py-3 rounded-xl font-bold hover:bg-pink-600 transition"
+                        className="flex items-center justify-center gap-3 w-full bg-gradient-to-r from-[#cb5094] to-[#e570b3] text-white py-4 rounded-xl font-bold hover:shadow-lg transition-all"
                       >
-                        <CreditCard className="w-5 h-5" />
-                        Open Payment Page
-                        <ExternalLink className="w-4 h-4" />
+                        <CreditCard className="w-6 h-6" />
+                        Buka Halaman Pembayaran
+                        <ExternalLink className="w-5 h-5" />
                       </a>
                     )}
-                  </>
+                  </div>
                 )}
 
                 {payment.status === 'SETTLEMENT' && (
-                  <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+                  <div className="mt-6 bg-green-50 border border-green-200 rounded-xl p-5">
                     <div className="flex items-center gap-3">
-                      <CheckCircle className="w-6 h-6 text-green-600" />
+                      <CheckCircle className="w-8 h-8 text-green-600" />
                       <div>
-                        <div className="font-semibold text-green-800">Payment Confirmed!</div>
-                        <div className="text-sm text-green-700">
-                          Paid at: {formatDateTime(payment.waktuPenyelesaian)}
-                        </div>
+                        <p className="font-bold text-green-800 text-lg">Pembayaran Berhasil!</p>
+                        <p className="text-sm text-green-700">Diterima pada {formatDateTime(payment.waktuSettlement)}</p>
                       </div>
                     </div>
                   </div>
                 )}
 
-                {(payment.status === 'EXPIRE' || payment.status === 'CANCEL' || payment.status === 'DENY') && (
-                  <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
-                    <div className="flex items-center gap-3 mb-3">
-                      <XCircle className="w-6 h-6 text-red-600" />
-                      <div className="font-semibold text-red-800">Payment {payment.status.toLowerCase()}</div>
+                {['EXPIRE', 'CANCEL', 'DENY'].includes(payment.status) && canCreatePayment() && (
+                  <div className="mt-6 bg-red-50 border border-red-200 rounded-xl p-5">
+                    <div className="flex items-center gap-3 mb-4">
+                      <XCircle className="w-8 h-8 text-red-600" />
+                      <p className="font-bold text-red-800 text-lg">
+                        Pembayaran {payment.status === 'EXPIRE' ? 'Kadaluarsa' : 'Gagal'}
+                      </p>
                     </div>
                     <button
                       onClick={() => setPayment(null)}
-                      className="w-full bg-red-500 text-white py-2 rounded-xl font-bold hover:bg-red-600 transition"
+                      className="w-full bg-red-500 text-white py-3 rounded-xl font-bold hover:bg-red-600 transition"
                     >
-                      Create New Payment
+                      Buat Pembayaran Baru
                     </button>
                   </div>
                 )}
               </div>
             )}
 
-            {!payment && (
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <h2 className="text-lg font-bold text-gray-900 mb-4">Select Payment Method</h2>
+            {/* Pilih Metode Pembayaran */}
+            {!payment && canCreatePayment() && (
+              <div className="bg-white rounded-2xl shadow-md border border-pink-100 p-6">
+                <h2 className="text-lg font-bold text-gray-900 mb-5">Pilih Metode Pembayaran</h2>
 
-                <div className="grid sm:grid-cols-2 gap-3 mb-6">
+                <div className="grid sm:grid-cols-2 gap-4 mb-6">
                   {paymentMethods.map((method) => (
                     <button
                       key={method.value}
                       onClick={() => setSelectedMethod(method.value)}
-                      className={`p-4 rounded-xl border-2 text-left transition-all ${
+                      className={`p-5 rounded-xl border-2 text-left transition-all hover:shadow-md ${
                         selectedMethod === method.value
-                          ? 'border-pink-500 bg-pink-50'
+                          ? 'border-[#cb5094] bg-pink-50'
                           : 'border-gray-200 hover:border-gray-300'
                       }`}
                     >
-                      <div className="flex items-center gap-3 mb-2">
-                        <span className="text-2xl">{method.icon}</span>
-                        <span className="font-bold text-gray-900">{method.label}</span>
+                      <div className="flex items-center gap-4 mb-3">
+                        <span className="text-3xl">{method.icon}</span>
+                        <div>
+                          <p className="font-bold text-gray-900">{method.label}</p>
+                          <p className="text-xs text-gray-600 mt-1">{method.description}</p>
+                        </div>
                       </div>
-                      <div className="text-xs text-gray-600">{method.description}</div>
                     </button>
                   ))}
                 </div>
@@ -350,45 +423,58 @@ function CustomerPayment() {
                 <button
                   onClick={createPayment}
                   disabled={creating}
-                  className="w-full bg-pink-500 text-white py-3 rounded-xl font-bold hover:bg-pink-600 transition disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="w-full bg-gradient-to-r from-[#cb5094] to-[#e570b3] text-white py-4 rounded-xl font-bold hover:shadow-lg transition-all disabled:opacity-70 flex items-center justify-center gap-3"
                 >
-                  <CreditCard className="w-5 h-5" />
-                  {creating ? 'Creating Payment...' : 'Create Payment'}
+                  <CreditCard className="w-6 h-6" />
+                  {creating ? 'Membuat Link...' : 'Buat Link Pembayaran'}
                 </button>
 
-                <div className="mt-4 bg-blue-50 border border-blue-200 rounded-xl p-3 text-sm text-blue-800">
-                  <AlertCircle className="w-4 h-4 inline mr-2" />
-                  You will be redirected to Midtrans payment page
+                <div className="mt-4 bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800">
+                  <AlertCircle className="w-5 h-5 inline mr-2" />
+                  Anda akan diarahkan ke halaman pembayaran Midtrans yang aman
                 </div>
               </div>
             )}
 
-            <div className="bg-white rounded-2xl shadow-lg p-6">
+            {/* Warning jika order tidak bisa dibayar */}
+            {!canCreatePayment() && !payment && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
+                <div className="flex items-center gap-3">
+                  <AlertCircle className="w-6 h-6 text-yellow-600" />
+                  <div>
+                    <p className="font-bold text-yellow-800">Pesanan Tidak Dapat Dibayar</p>
+                    <p className="text-sm text-yellow-700 mt-1">
+                      Status pesanan saat ini: <span className="font-semibold">{order.status}</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Daftar Produk */}
+            <div className="bg-white rounded-2xl shadow-md border border-pink-100 p-6">
               <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <Package className="w-5 h-5 text-pink-500" />
-                Order Items
+                <Package className="w-5 h-5 text-[#cb5094]" />
+                Produk yang Dipesan
               </h3>
               
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {order.items.map((item, idx) => (
-                  <div key={idx} className="flex gap-3 p-3 bg-gray-50 rounded-xl">
+                  <div key={idx} className="flex gap-4 bg-gray-50 rounded-xl p-4">
                     <img
                       src={item.gambarUrl}
                       alt={item.namaProduk}
-                      className="w-20 h-20 object-cover rounded-lg"
-                      onError={(e) => e.target.src = 'https://via.placeholder.com/100?text=No+Image'}
+                      className="w-20 h-20 object-cover rounded-lg flex-shrink-0"
+                      onError={(e) => e.target.src = 'https://via.placeholder.com/80?text=No+Image'}
                     />
                     <div className="flex-1">
-                      <h4 className="font-bold text-gray-900 text-sm">{item.namaProduk}</h4>
-                      <p className="text-xs text-gray-600">
-                        {item.ukuranVariant} • {item.warnaVariant}
+                      <h4 className="font-bold text-gray-900">{item.namaProduk}</h4>
+                      <p className="text-sm text-gray-600 mt-1">
+                        {item.ukuranVariant && `Ukuran: ${item.ukuranVariant} • `}
+                        {item.warnaVariant && `Warna: ${item.warnaVariant}`}
                       </p>
-                      <p className="text-xs text-gray-500">Qty: {item.kuantitas}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-bold text-pink-600 text-sm">
-                        {formatPrice(item.subtotal)}
-                      </p>
+                      <p className="text-sm text-gray-600">Jumlah: {item.kuantitas}</p>
+                      <p className="font-bold text-[#cb5094] mt-2">{formatPrice(item.subtotal)}</p>
                     </div>
                   </div>
                 ))}
@@ -396,38 +482,38 @@ function CustomerPayment() {
             </div>
           </div>
 
+          {/* Ringkasan Pesanan */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-2xl shadow-lg p-6 sticky top-6">
-              <h3 className="font-bold text-gray-900 mb-4">Order Summary</h3>
+            <div className="bg-white rounded-2xl shadow-md border border-pink-100 p-6 sticky top-24">
+              <h3 className="font-bold text-gray-900 mb-5">Ringkasan Pesanan</h3>
 
-              <div className="space-y-3 mb-4">
-                <div className="flex justify-between text-sm">
+              <div className="space-y-4 mb-6">
+                <div className="flex justify-between">
                   <span className="text-gray-600">Subtotal</span>
                   <span className="font-semibold">{formatPrice(order.subtotal)}</span>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Shipping</span>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Ongkos Kirim</span>
                   <span className="font-semibold">{formatPrice(order.ongkosKirim)}</span>
                 </div>
-                <div className="border-t pt-3 flex justify-between">
-                  <span className="font-bold text-gray-900">Total</span>
-                  <span className="font-bold text-pink-600 text-xl">
-                    {formatPrice(order.total)}
-                  </span>
+                <div className="border-t pt-4">
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-lg text-gray-900">Total Bayar</span>
+                    <span className="font-bold text-2xl text-[#cb5094]">{formatPrice(order.total)}</span>
+                  </div>
                 </div>
               </div>
 
-              <div className="bg-gray-50 rounded-xl p-3 text-xs text-gray-700">
-                <div className="font-semibold mb-2">Shipping Address:</div>
-                <div>{order.namaPenerima}</div>
-                <div>{order.teleponPenerima}</div>
-                <div className="mt-1">
+              <div className="bg-gray-50 rounded-xl p-4 text-sm">
+                <p className="font-semibold text-gray-800 mb-2">Alamat Pengiriman</p>
+                <p className="font-medium">{order.namaPenerima}</p>
+                <p>{order.teleponPenerima}</p>
+                <p className="mt-2 text-gray-700">
                   {order.alamatBaris1}
                   {order.alamatBaris2 && `, ${order.alamatBaris2}`}
-                </div>
-                <div>
+                  <br />
                   {order.kota}, {order.provinsi} {order.kodePos}
-                </div>
+                </p>
               </div>
             </div>
           </div>

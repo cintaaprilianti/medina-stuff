@@ -7,7 +7,6 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import { productAPI, variantAPI } from '../utils/api';
 import { formatPrice } from '../utils/formatPrice';
-import toast from 'react-hot-toast';
 
 function Home() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -70,7 +69,6 @@ function Home() {
         setCategories(uniqueCats);
       } catch (err) {
         console.error('Gagal memuat produk:', err);
-        toast.error('Gagal memuat produk');
         setProducts([]);
       } finally {
         setLoading(false);
@@ -128,11 +126,6 @@ function Home() {
   };
 
   const getUniqueValues = (key) => [...new Set(variants.map(v => v[key]))];
-
-  const requireLogin = () => {
-    toast.error('Silakan login terlebih dahulu untuk berbelanja');
-    navigate('/login');
-  };
 
   const filteredProducts = products
     .filter(p => selectedCategory === 'all' || p.category?.nama === selectedCategory)
@@ -321,7 +314,7 @@ function Home() {
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
                   {filteredProducts.map(product => {
                     const images = getProductImages(product);
-                    const mainImg = images[0] || 'https://via.placeholder.com/400?text=No+Image';
+                    const mainImg = images[0] || 'https://placehold.co/400x533/cccccc/ffffff?text=No+Image';
 
                     return (
                       <div
@@ -334,7 +327,7 @@ function Home() {
                             src={mainImg}
                             alt={product.nama}
                             className="w-full h-full object-cover"
-                            onError={e => e.target.src = 'https://via.placeholder.com/400?text=No+Image'}
+                            onError={e => e.target.src = 'https://placehold.co/400x533/cccccc/ffffff?text=No+Image'}
                           />
                           {product.category && (
                             <div className="absolute top-3 left-3">
@@ -358,11 +351,10 @@ function Home() {
                   })}
                 </div>
               ) : (
-
                 <div className="space-y-4">
                   {filteredProducts.map(product => {
                     const images = getProductImages(product);
-                    const mainImg = images[0] || 'https://via.placeholder.com/400?text=No+Image';
+                    const mainImg = images[0] || 'https://placehold.co/400x533/cccccc/ffffff?text=No+Image';
 
                     return (
                       <div
@@ -375,7 +367,7 @@ function Home() {
                             src={mainImg}
                             alt={product.nama}
                             className="w-full h-full object-cover"
-                            onError={e => e.target.src = 'https://via.placeholder.com/400?text=No+Image'}
+                            onError={e => e.target.src = 'https://placehold.co/400x533/cccccc/ffffff?text=No+Image'}
                           />
                         </div>
 
@@ -421,7 +413,7 @@ function Home() {
                 <div className="relative aspect-square bg-gray-50 rounded-2xl overflow-hidden mb-3">
                   {(() => {
                     const images = getProductImages(selectedProduct);
-                    const img = images[currentImageIndex] || 'https://via.placeholder.com/600';
+                    const img = images[currentImageIndex] || 'https://placehold.co/600x600/cccccc/ffffff?text=No+Image';
                     return (
                       <>
                         <img src={img} alt="" className="w-full h-full object-cover" />
@@ -511,20 +503,26 @@ function Home() {
                 </div>
 
                 <div className="space-y-3 pt-3">
-                  {isLoggedIn ? (
-                    <button className="w-full bg-[#cb5094] text-white py-3.5 rounded-full font-bold hover:bg-[#b04580] transition-all flex items-center justify-center gap-3 text-sm">
-                      <ShoppingCart className="w-5 h-5" />
-                      Tambah ke Keranjang
-                    </button>
-                  ) : (
+                  {!isLoggedIn ? (
                     <>
-                      <button onClick={requireLogin} className="w-full bg-[#cb5094] text-white py-3.5 rounded-full font-bold hover:bg-[#b04580] transition-all text-sm">
+                      <button 
+                        onClick={() => navigate('/login')}
+                        className="w-full bg-[#cb5094] text-white py-3.5 rounded-full font-bold hover:bg-[#b04580] transition-all text-sm"
+                      >
                         Login untuk Belanja
                       </button>
-                      <button onClick={requireLogin} className="w-full border-2 border-[#cb5094] text-[#cb5094] py-3.5 rounded-full font-bold hover:bg-pink-50 transition-all text-sm">
+                      <button 
+                        onClick={() => navigate('/signup')}
+                        className="w-full border-2 border-[#cb5094] text-[#cb5094] py-3.5 rounded-full font-bold hover:bg-pink-50 transition-all text-sm"
+                      >
                         Daftar Sekarang
                       </button>
                     </>
+                  ) : (
+                    <button className="w-full bg-[#cb5094] text-white py-3.5 rounded-full font-bold hover:bg-[#b04580] transition-all flex items-center justify-center gap-3 text-sm">
+                      <ShoppingBag className="w-5 h-5" />
+                      Tambah ke Keranjang
+                    </button>
                   )}
                 </div>
 

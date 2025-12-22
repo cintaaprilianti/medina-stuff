@@ -3,7 +3,7 @@ import {
   Mail, Lock, Eye, EyeOff, Menu, X, CheckCircle, XCircle,
   User
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom'; // ← TAMBAHKAN useNavigate
 
 function Notification({ type, message, onClose }) {
   const [isExiting, setIsExiting] = useState(false);
@@ -21,14 +21,8 @@ function Notification({ type, message, onClose }) {
   };
 
   const configs = {
-    success: { 
-      bgColor: 'bg-green-500', 
-      shadowColor: 'shadow-green-500/50' 
-    },
-    error: { 
-      bgColor: 'bg-red-500', 
-      shadowColor: 'shadow-red-500/50' 
-    }
+    success: { bgColor: 'bg-green-500', shadowColor: 'shadow-green-500/50' },
+    error: { bgColor: 'bg-red-500', shadowColor: 'shadow-red-500/50' }
   };
   const config = configs[type] || configs.success;
   const Icon = type === 'success' ? CheckCircle : XCircle;
@@ -49,6 +43,8 @@ function Notification({ type, message, onClose }) {
 }
 
 function Login() {
+  const navigate = useNavigate(); // ← TAMBAHKAN INI! INI YANG BIKIN REDIRECT JALAN
+
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -88,38 +84,42 @@ function Login() {
       });
 
       const data = await res.json();
-      console.log('Response:', data);
+      console.log('Login response:', data);
 
       if (res.ok) {
         const token = data.accessToken || data.token;
         const user = data.user || data.data?.user || data;
-        const role = (user.role || 'CUSTOMER').toUpperCase();
 
         if (!token) {
-          showNotification('error', 'Token tidak ditemukan!');
+          showNotification('error', 'Token tidak ditemukan dari server!');
           return;
         }
 
+        // Ambil role dari response, default CUSTOMER
+        const role = (user.role || 'CUSTOMER').toUpperCase();
+        console.log('Detected user role:', role); // ← DEBUG: cek role di console
+
+        // Simpan ke localStorage
         localStorage.setItem('accessToken', token);
         localStorage.setItem('user', JSON.stringify({ ...user, role }));
 
-        showNotification('success', 'Login berhasil!');
+        showNotification('success', `Selamat datang kembali, ${user.nama || user.email || 'User'}!`);
 
-        setTimeout(() => {
-          if (role === 'ADMIN') {
-            window.location.href = '/admin/dashboard';
-          } else if (role === 'OWNER') {
-            window.location.href = '/owner/dashboard';
-          } else {
-            window.location.href = '/dashboard';
-          }
-        }, 1200);
+        // LANGSUNG NAVIGATE, TANPA setTimeout!
+        if (role === 'ADMIN') {
+          navigate('/admin/dashboard', { replace: true });
+        } else if (role === 'OWNER') {
+          navigate('/owner/dashboard', { replace: true });
+        } else {
+          navigate('/customer/products', { replace: true });
+        }
       } else {
-        showNotification('error', data.message || 'Email atau password salah');
+        const errorMsg = data.message || 'Email atau password salah';
+        showNotification('error', errorMsg);
       }
     } catch (err) {
       console.error('Login error:', err);
-      showNotification('error', 'Gagal terhubung ke server. Pastikan backend jalan!');
+      showNotification('error', 'Gagal terhubung ke server. Pastikan backend berjalan di port 5000!');
     } finally {
       setIsLoading(false);
     }
@@ -150,9 +150,7 @@ function Login() {
       </div>
 
       {/* Navbar */}
-      <nav className={`fixed top-0 w-full z-50 transition-all duration-500 ${
-        window.scrollY > 20 ? 'bg-white/80 backdrop-blur-xl shadow-2xl py-2' : 'bg-white/70 backdrop-blur-md py-4'
-      }`}>
+      <nav className="fixed top-0 w-full z-50 bg-white/70 backdrop-blur-md py-4 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-3 group cursor-pointer">

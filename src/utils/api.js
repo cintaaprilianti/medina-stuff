@@ -100,4 +100,58 @@ export const shipmentAPI = {
   updateStatus: (id, data) => api.put(`/shipments/${id}/status`, data),
 };
 
+// ✅ NEW: Dashboard & Reports API
+export const dashboardAPI = {
+  // Dashboard Summary
+  getSummary: (params = {}) => api.get('/admin/dashboard/summary', { params }),
+  
+  // Order Statistics
+  getOrderStatistics: (params = {}) => api.get('/admin/dashboard/orders/statistics', { params }),
+  
+  // Payment Statistics
+  getPaymentStatistics: (params = {}) => api.get('/admin/dashboard/payments/statistics', { params }),
+  
+  // Revenue Trends
+  getRevenueTrends: (params = {}) => api.get('/admin/dashboard/revenue/trends', { params }),
+  
+  // Top Products
+  getTopProducts: (params = {}) => api.get('/admin/dashboard/products/top', { params }),
+  
+  // Product Performance
+  getProductPerformance: (params = {}) => api.get('/admin/dashboard/products/performance', { params }),
+  
+  // Customer Statistics
+  getCustomerStatistics: (params = {}) => api.get('/admin/dashboard/customers/statistics', { params }),
+  
+  // Recent Activity
+  getRecentActivity: (params = {}) => api.get('/admin/dashboard/activity/recent', { params }),
+};
+
+export const reportsAPI = {
+  // Sales Report
+  getSalesReport: (params) => api.get('/admin/reports/sales', { params }),
+  exportSalesReport: (params) => 
+    api.get('/admin/reports/sales/export', { params, responseType: 'blob' }),
+  
+  // Customer Report
+  getCustomerReport: (params) => api.get('/admin/reports/customers', { params }),
+  exportCustomerReport: (params) => 
+    api.get('/admin/reports/customers/export', { params, responseType: 'blob' }),
+  
+  // Order Report
+  getOrderReport: (params) => api.get('/admin/reports/orders', { params }),
+  exportOrderReport: (params) => 
+    api.get('/admin/reports/orders/export', { params, responseType: 'blob' }),
+  
+  // Inventory Report
+  getInventoryReport: () => api.get('/admin/reports/inventory'),
+  exportInventoryReport: () => 
+    api.get('/admin/reports/inventory/export', { responseType: 'blob' }),
+  
+  // Category Report
+  getCategoryReport: (params) => api.get('/admin/reports/category', { params }),
+  exportCategoryReport: (params) => 
+    api.get('/admin/reports/category/export', { params, responseType: 'blob' }),
+};
+
 export default api;

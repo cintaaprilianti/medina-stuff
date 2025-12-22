@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
-import {
-  PackageSearch, FolderTree, ClipboardList, CreditCard, LogOut, Plus, Eye, Clock, CheckCircle
-} from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import {
+  PackageSearch, FolderTree, ClipboardList, CreditCard, LogOut, Home, Clock, CheckCircle, Menu, X, Truck
+} from 'lucide-react';
 import { productAPI, categoryAPI } from '../utils/api';
+import api from '../utils/api';
 import { formatPrice } from '../utils/formatPrice';
 
 export default function AdminDashboard() {
   const [adminData, setAdminData] = useState({ nama: 'Admin', email: '', role: 'ADMIN' });
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [stats, setStats] = useState({
     totalProducts: 0,
     totalCategories: 0,
@@ -17,7 +19,6 @@ export default function AdminDashboard() {
   });
   const [recentProducts, setRecentProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedProduct, setSelectedProduct] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -38,21 +39,46 @@ export default function AdminDashboard() {
           role: 'ADMIN'
         });
 
-        const [prodRes, catRes] = await Promise.all([
+        // Fetch products, categories, dan orders
+        const [prodRes, catRes, ordersRes] = await Promise.all([
           productAPI.getAll({ limit: 10, sort: 'createdAt:desc' }),
-          categoryAPI.getAll(true)
+          categoryAPI.getAll(true),
+          api.get('/orders/admin/all', { params: { limit: 1000 } })
         ]);
 
         const productsArray = prodRes.data?.data || prodRes.data || [];
         const categoriesArray = Array.isArray(catRes) ? catRes : catRes.data || [];
+        const ordersArray = ordersRes.data?.data || ordersRes.data?.orders || [];
+
+        // Hitung stats dari orders
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+        const todayOrdersCount = ordersArray.filter(order => {
+          const orderDate = new Date(order.dibuatPada || order.createdAt);
+          return orderDate >= today;
+        }).length;
+
+        const monthlyRevenue = ordersArray
+          .filter(order => {
+            const orderDate = new Date(order.dibuatPada || order.createdAt);
+            const paidStatus = ['PAID', 'PROCESSING', 'SHIPPED', 'COMPLETED'].includes(order.status);
+            return orderDate >= thisMonthStart && paidStatus;
+          })
+          .reduce((sum, order) => sum + Number(order.total || 0), 0);
+
+        const pendingOrdersCount = ordersArray.filter(order => 
+          order.status === 'PAID' || order.status === 'PROCESSING'
+        ).length;
 
         setRecentProducts(productsArray);
         setStats({
           totalProducts: productsArray.length,
           totalCategories: categoriesArray.length,
-          todayOrders: 0,
-          pendingOrders: 0,
-          monthlyRevenue: 0
+          todayOrders: todayOrdersCount,
+          pendingOrders: pendingOrdersCount,
+          monthlyRevenue: monthlyRevenue
         });
 
       } catch (err) {
@@ -100,10 +126,12 @@ export default function AdminDashboard() {
   }
 
   const menuItems = [
+    { path: '/admin/dashboard', icon: Home, label: 'Beranda' },
     { path: '/admin/products', icon: PackageSearch, label: 'Produk' },
     { path: '/admin/categories', icon: FolderTree, label: 'Kategori' },
     { path: '/admin/orders', icon: ClipboardList, label: 'Pesanan' },
     { path: '/admin/transactions', icon: CreditCard, label: 'Transaksi' },
+    { path: '/admin/shipments', icon: Truck, label: 'Pengiriman' }
   ];
 
   return (
@@ -113,6 +141,13 @@ export default function AdminDashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
+              <button
+                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                className="lg:hidden p-2 hover:bg-pink-50 rounded-lg transition"
+              >
+                {isSidebarOpen ? <X className="w-6 h-6 text-[#cb5094]" /> : <Menu className="w-6 h-6 text-[#cb5094]" />}
+              </button>
+
               <a href="/admin/dashboard" className="flex items-center space-x-3 group">
                 <div className="relative w-12 h-12 bg-gradient-to-br from-[#cb5094] to-[#e570b3] rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-all duration-300 overflow-hidden">
                   <img
@@ -153,7 +188,7 @@ export default function AdminDashboard() {
 
       {/* Layout Utama */}
       <div className="pt-16 min-h-screen pb-20 lg:pb-0 flex">
-        {/* Sidebar Desktop - PERSIS SAMA DENGAN CUSTOMER DASHBOARD */}
+        {/* Sidebar Desktop */}
         <aside className="hidden lg:block w-64 bg-white shadow-2xl fixed top-16 left-0 h-[calc(100vh-4rem)] overflow-y-auto">
           <div className="h-full flex flex-col">
             <nav className="flex-1 p-6 space-y-2">
@@ -178,7 +213,6 @@ export default function AdminDashboard() {
               })}
             </nav>
 
-            {/* Logout - PERSIS seperti customer */}
             <div className="p-6 border-t border-gray-200">
               <button
                 onClick={handleLogout}
@@ -191,37 +225,91 @@ export default function AdminDashboard() {
           </div>
         </aside>
 
-        {/* Main Content */}
-        <main className="flex-1 px-4 sm:px-6 lg:px-8 lg:ml-64">
-          <div className="max-w-7xl mx-auto py-8">
-            <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-2">Selamat Datang, {adminData.nama.split(' ')[0]}!</h1>
-            <p className="text-gray-600 mb-10">Ini ringkasan toko kamu hari ini</p>
+        {/* Sidebar Mobile */}
+        <aside className={`lg:hidden fixed top-16 left-0 z-40 w-64 bg-white shadow-2xl transform transition-transform duration-300 h-auto ${
+          isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}>
+          <div className="p-6">
+            <button
+              onClick={() => {
+                handleLogout();
+                setIsSidebarOpen(false);
+              }}
+              className="w-full flex items-center space-x-3 px-5 py-4 rounded-2xl text-red-600 hover:bg-red-50 transition-all duration-200 font-medium"
+            >
+              <LogOut className="w-5 h-5" />
+              <span>Logout</span>
+            </button>
+          </div>
+        </aside>
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-              {[
-                { label: 'Total Produk', value: stats.totalProducts, icon: PackageSearch },
-                { label: 'Kategori', value: stats.totalCategories, icon: FolderTree },
-                { label: 'Order Hari Ini', value: stats.todayOrders, icon: ClipboardList },
-                { label: 'Revenue Bulan Ini', value: `Rp ${(stats.monthlyRevenue / 1000000).toFixed(1)}M`, icon: CreditCard },
-              ].map((stat, i) => (
-                <div key={i} className="bg-white rounded-3xl shadow-xl p-6 hover:shadow-2xl transition">
-                  <div className="w-14 h-14 bg-gradient-to-br from-[#cb5094] to-[#e570b3] rounded-2xl flex items-center justify-center mb-4">
-                    <stat.icon className="w-8 h-8 text-white" />
-                  </div>
-                  <p className="text-3xl font-bold text-gray-800">{stat.value}</p>
-                  <p className="text-sm text-gray-600">{stat.label}</p>
+        {isSidebarOpen && (
+          <div className="fixed inset-0 bg-black/50 z-30 lg:hidden" onClick={() => setIsSidebarOpen(false)} />
+        )}
+
+        {/* Main Content */}
+        <main className="flex-1">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-2">
+            <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-2">Selamat Datang, {adminData.nama.split(' ')[0]}!</h1>
+            <p className="text-gray-600 mb-8 lg:mb-10">Ini ringkasan toko kamu hari ini</p>
+
+            {/* Stats Cards - 5 cards, rapi & konsisten */}
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 lg:gap-6 mb-8 lg:mb-12">
+              {/* Total Produk */}
+              <div className="bg-white rounded-2xl lg:rounded-3xl shadow-xl p-4 lg:p-6 hover:shadow-2xl transition-all">
+                <div className="w-12 h-12 lg:w-14 lg:h-14 bg-gradient-to-br from-[#cb5094] to-[#e570b3] rounded-xl lg:rounded-2xl flex items-center justify-center mb-3 lg:mb-4">
+                  <PackageSearch className="w-6 h-6 lg:w-8 lg:h-8 text-white" />
                 </div>
-              ))}
+                <p className="text-2xl lg:text-3xl font-bold text-gray-800">{stats.totalProducts}</p>
+                <p className="text-xs lg:text-sm text-gray-600 mt-1">Total Produk</p>
+              </div>
+
+              {/* Kategori */}
+              <div className="bg-white rounded-2xl lg:rounded-3xl shadow-xl p-4 lg:p-6 hover:shadow-2xl transition-all">
+                <div className="w-12 h-12 lg:w-14 lg:h-14 bg-gradient-to-br from-[#cb5094] to-[#e570b3] rounded-xl lg:rounded-2xl flex items-center justify-center mb-3 lg:mb-4">
+                  <FolderTree className="w-6 h-6 lg:w-8 lg:h-8 text-white" />
+                </div>
+                <p className="text-2xl lg:text-3xl font-bold text-gray-800">{stats.totalCategories}</p>
+                <p className="text-xs lg:text-sm text-gray-600 mt-1">Kategori</p>
+              </div>
+
+              {/* Order Hari Ini */}
+              <div className="bg-white rounded-2xl lg:rounded-3xl shadow-xl p-4 lg:p-6 hover:shadow-2xl transition-all">
+                <div className="w-12 h-12 lg:w-14 lg:h-14 bg-gradient-to-br from-[#cb5094] to-[#e570b3] rounded-xl lg:rounded-2xl flex items-center justify-center mb-3 lg:mb-4">
+                  <ClipboardList className="w-6 h-6 lg:w-8 lg:h-8 text-white" />
+                </div>
+                <p className="text-2xl lg:text-3xl font-bold text-gray-800">{stats.todayOrders}</p>
+                <p className="text-xs lg:text-sm text-gray-600 mt-1">Order Hari Ini</p>
+              </div>
+
+              {/* Menunggu Proses */}
+              <div className="bg-white rounded-2xl lg:rounded-3xl shadow-xl p-4 lg:p-6 hover:shadow-2xl transition-all">
+                <div className="w-12 h-12 lg:w-14 lg:h-14 bg-gradient-to-br from-[#cb5094] to-[#e570b3] rounded-xl lg:rounded-2xl flex items-center justify-center mb-3 lg:mb-4">
+                  <Clock className="w-6 h-6 lg:w-8 lg:h-8 text-white" />
+                </div>
+                <p className="text-2xl lg:text-3xl font-bold text-gray-800">{stats.pendingOrders}</p>
+                <p className="text-xs lg:text-sm text-gray-600 mt-1">Menunggu Proses</p>
+              </div>
+
+              {/* Revenue Bulan Ini */}
+              <div className="bg-white rounded-2xl lg:rounded-3xl shadow-xl p-4 lg:p-6 hover:shadow-2xl transition-all">
+                <div className="w-12 h-12 lg:w-14 lg:h-14 bg-gradient-to-br from-[#cb5094] to-[#e570b3] rounded-xl lg:rounded-2xl flex items-center justify-center mb-3 lg:mb-4">
+                  <CreditCard className="w-6 h-6 lg:w-8 lg:h-8 text-white" />
+                </div>
+                <p className="text-2xl lg:text-3xl font-bold text-gray-800">{formatPrice(stats.monthlyRevenue)}</p>
+                <p className="text-xs lg:text-sm text-gray-600 mt-1">Revenue Bulan Ini</p>
+              </div>
             </div>
 
-            <div className="bg-white rounded-3xl shadow-xl p-8">
-              <div className="flex justify-between items-center mb-8">
-                <h2 className="text-2xl font-bold text-gray-900">Produk Terbaru</h2>
+            {/* Produk Terbaru */}
+            <div className="bg-white rounded-2xl lg:rounded-3xl shadow-xl p-4 sm:p-6 lg:p-8">
+              <div className="flex justify-between items-center mb-6 lg:mb-8">
+                <h2 className="text-xl lg:text-2xl font-bold text-gray-900">Produk Terbaru</h2>
                 <button
                   onClick={() => navigate('/admin/products')}
-                  className="text-[#cb5094] hover:underline font-medium flex items-center gap-2"
+                  className="text-[#cb5094] hover:underline font-medium flex items-center gap-2 text-sm lg:text-base"
                 >
-                  Lihat Semua <Plus className="w-5 h-5" />
+                  Lihat Semua
                 </button>
               </div>
 
@@ -234,22 +322,21 @@ export default function AdminDashboard() {
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5">
                   {recentProducts.map(product => {
                     const images = getProductImages(product);
-                    const mainImage = images[0] || 'https://via.placeholder.com/400?text=No+Image';
+                    const mainImage = images[0] || 'https://placehold.co/400x533/cccccc/ffffff?text=No+Image';
                     const productIsPreOrder = isPreOrder(product);
                     const productIsReadyStock = isReadyStock(product);
 
                     return (
                       <div
                         key={product.id}
-                        className="group bg-white rounded-2xl shadow-md border-2 border-[#cb5094]/10 overflow-hidden hover:shadow-2xl hover:border-[#cb5094]/40 hover:scale-[1.02] transition-all duration-300 cursor-pointer relative"
-                        onClick={() => setSelectedProduct(product)}
+                        className="group bg-white rounded-2xl shadow-md border-2 border-[#cb5094]/10 overflow-hidden hover:shadow-2xl hover:border-[#cb5094]/40 hover:scale-[1.02] transition-all duration-300 relative"
                       >
                         <div className="relative overflow-hidden aspect-[3/4]">
                           <img
                             src={mainImage}
                             alt={product.nama}
                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                            onError={(e) => e.target.src = 'https://via.placeholder.com/400?text=No+Image'}
+                            onError={(e) => e.target.src = 'https://placehold.co/400x533/cccccc/ffffff?text=No+Image'}
                           />
 
                           <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -259,12 +346,6 @@ export default function AdminDashboard() {
                               {product.category.nama}
                             </div>
                           )}
-
-                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/30">
-                            <div className="bg-white rounded-full p-3 shadow-lg">
-                              <Eye className="w-6 h-6 text-[#cb5094]" />
-                            </div>
-                          </div>
                         </div>
 
                         <div className="p-4">
@@ -304,7 +385,7 @@ export default function AdminDashboard() {
 
       {/* Bottom Navigation Mobile */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-2xl lg:hidden z-50">
-        <div className="grid grid-cols-5 h-16">
+        <div className="grid grid-cols-6 h-16">
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = isActiveRoute(item.path);
@@ -318,98 +399,15 @@ export default function AdminDashboard() {
                 }`}
               >
                 <Icon className="w-6 h-6" />
-                <span className="text-[10px] font-medium">{item.label}</span>
+                <span className="text-[9px] font-medium">{item.label}</span>
                 {isActive && (
                   <div className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-gradient-to-r from-[#cb5094] to-[#e570b3] rounded-b-full"></div>
                 )}
               </button>
             );
           })}
-
-          <button
-            onClick={handleLogout}
-            className="flex flex-col items-center justify-center space-y-1 text-red-600"
-          >
-            <LogOut className="w-6 h-6" />
-            <span className="text-[10px] font-medium">Logout</span>
-          </button>
         </div>
       </nav>
-
-      {/* Modal Detail Produk */}
-      {selectedProduct && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setSelectedProduct(null)}>
-          <div className="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-8 py-6 flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-gray-900">Detail Produk</h2>
-              <button
-                onClick={() => setSelectedProduct(null)}
-                className="p-2 hover:bg-gray-100 rounded-full transition"
-              >
-                <X className="w-6 h-6 text-gray-600" />
-              </button>
-            </div>
-
-            <div className="p-8">
-              <div className="grid md:grid-cols-2 gap-8">
-                <div>
-                  <img 
-                    src={selectedProduct.gambarUrl?.split('|||')[0] || 'https://via.placeholder.com/600'}
-                    alt={selectedProduct.nama}
-                    className="w-full h-96 object-cover rounded-2xl shadow-lg"
-                  />
-                </div>
-
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="text-3xl font-bold text-gray-900 mb-2">{selectedProduct.nama}</h3>
-                    {selectedProduct.category && (
-                      <span className="inline-block bg-pink-100 text-pink-700 px-4 py-2 rounded-full text-sm font-bold mb-3">
-                        {selectedProduct.category.nama}
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="border-t border-b border-gray-200 py-4">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-gray-600">Harga Dasar:</span>
-                      <span className="text-2xl font-bold text-[#cb5094]">
-                        {formatPrice(selectedProduct.hargaDasar)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-600">Stok:</span>
-                      <span className="text-lg font-semibold text-gray-900">{selectedProduct.stok || 0}</span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h4 className="font-semibold text-gray-900 mb-2">Deskripsi:</h4>
-                    <p className="text-gray-600 leading-relaxed">
-                      {selectedProduct.deskripsi || 'Tidak ada deskripsi'}
-                    </p>
-                  </div>
-
-                  <div className="flex gap-4 pt-4">
-                    <button
-                      onClick={() => navigate(`/admin/products/edit/${selectedProduct.id}`)}
-                      className="flex-1 bg-gradient-to-r from-[#cb5094] to-[#e570b3] text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition"
-                    >
-                      Edit Produk
-                    </button>
-                    <button
-                      onClick={() => setSelectedProduct(null)}
-                      className="flex-1 bg-gray-100 text-gray-700 px-6 py-3 rounded-xl font-semibold hover:bg-gray-200 transition"
-                    >
-                      Tutup
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

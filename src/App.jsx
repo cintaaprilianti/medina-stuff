@@ -28,6 +28,12 @@ import CategoryManagement from './admin/CategoryManagement';
 import ProductManagement from './admin/ProductManagement';
 import ProductVariantManagement from './admin/ProductVariantManagement';
 import AdminOrders from './admin/AdminOrders';
+import AdminTransactions from './admin/AdminTransactions';
+import AdminShipments from './admin/AdminShipments';
+
+// Owner Pages
+import OwnerDashboard from './owner/OwnerDashboard';
+import OwnerLayout from './owner/OwnerLayout';
 
 function App() {
   return (
@@ -45,9 +51,9 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
 
-        {/* CUSTOMER ROUTES - Wrapped with CustomerDashboard Layout */}
+        {/* CUSTOMER ROUTES */}
         <Route path="/customer" element={<CustomerDashboard />}>
-          <Route index element={<Navigate to="/customer/products" replace />} />
+          <Route index element={<Navigate to="products" replace />} />
           <Route path="products" element={<CustomerProducts />} />
           <Route path="cart" element={<CustomerCart />} />
           <Route path="orders" element={<CustomerOrders />} />
@@ -56,18 +62,29 @@ function App() {
           <Route path="wishlist" element={<CustomerWishlist />} />
           <Route path="profile" element={<CustomerProfile />} />
         </Route>
-        
-        {/* Legacy route - redirect to /customer/products */}
+
         <Route path="/dashboard" element={<Navigate to="/customer/products" replace />} />
 
         {/* ADMIN ROUTES */}
-        <Route path="/admin/dashboard" element={<AdminDashboard />} />
-        <Route path="/admin" element={<AdminLayout />}>
+        <Route path="/admin/*" element={<AdminLayout />}>
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="categories" element={<CategoryManagement />} />
           <Route path="products" element={<ProductManagement />} />
           <Route path="products/:productId/variants" element={<ProductVariantManagement />} />
-          <Route path="/admin/orders" element={<AdminOrders />} />
+          <Route path="orders" element={<AdminOrders />} />
+          <Route path="transactions" element={<AdminTransactions />} />
+          <Route path="shipments" element={<AdminShipments />} />
         </Route>
+
+        {/* OWNER ROUTES */}
+        <Route path="/owner/*" element={<OwnerLayout />}>
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<OwnerDashboard />} />
+        </Route>
+
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   );
