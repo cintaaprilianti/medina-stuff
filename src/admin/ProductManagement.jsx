@@ -31,9 +31,9 @@
       deskripsi: '',
       hargaDasar: '',
       berat: '',
-      length: '',
-      width: '',
-      height: '',
+      panjang: '',  // ← UBAH dari "length"
+      lebar: '',    // ← UBAH dari "width"
+      tinggi: '',   // ← UBAH dari "height"
       status: 'READY',
       aktif: true,
       gambarUrls: []
@@ -172,7 +172,7 @@
     const handleSubmit = async (e) => {
       e.preventDefault();
       
-      if (!formData.categoryId || !formData.nama || !formData.hargaDasar || !formData.berat || !formData.length || !formData.width || !formData.height) {
+      if (!formData.categoryId || !formData.nama || !formData.hargaDasar || !formData.berat || !formData.panjang || !formData.lebar || !formData.tinggi) {
         notification.warning('Kategori, nama, harga, berat, panjang, lebar, dan tinggi wajib diisi');
         return;
       }
@@ -184,14 +184,13 @@
       deskripsi: formData.deskripsi,
       hargaDasar: parseInt(formData.hargaDasar),
       berat: parseInt(formData.berat),
-      length  : Number(formData.length),
-      width   : Number(formData.width),
-      height  : Number(formData.height),
+      panjang: Number(formData.panjang),  // ← UBAH dari "length"
+      lebar: Number(formData.lebar),      // ← UBAH dari "width"
+      tinggi: Number(formData.tinggi),    // ← UBAH dari "height"
       status: formData.status,
       aktif: formData.aktif,
       gambarUrl: formData.gambarUrls.join('|||')
     };
-
 
       try {
         if (editingProduct) {
@@ -253,21 +252,20 @@
         : [];
       
       setFormData({
-    categoryId: product.categoryId,
-    nama: product.nama,
-    slug: product.slug,
-    deskripsi: product.deskripsi || '',
-    hargaDasar: product.hargaDasar.toString(),
-    berat: product.berat?.toString() || '',
-    length: product.length?.toString() || '',
-    width: product.width?.toString() || '',
-    height: product.height?.toString() || '',
-    status: product.status,
-    aktif: product.aktif,
-    gambarUrls
-  });
+        categoryId: product.categoryId,
+        nama: product.nama,
+        slug: product.slug,
+        deskripsi: product.deskripsi || '',
+        hargaDasar: product.hargaDasar.toString(),
+        berat: product.berat?.toString() || '',
+        panjang: product.panjang?.toString() || '',  // ← UBAH dari "length"
+        lebar: product.lebar?.toString() || '',      // ← UBAH dari "width"
+        tinggi: product.tinggi?.toString() || '',    // ← UBAH dari "height"
+        status: product.status,
+        aktif: product.aktif,
+        gambarUrls
+      });
 
-      
       setColors([]);
       setSizes([]);
       setVariants([]);
@@ -297,9 +295,9 @@
         deskripsi: '',
         hargaDasar: '',
         berat: '',
-        length: '',
-        width: '',
-        height: '',
+        panjang: '',  // ← UBAH dari "length"
+        lebar: '',    // ← UBAH dari "width"
+        tinggi: '',   // ← UBAH dari "height"
         status: 'READY',
         aktif: true,
         gambarUrls: []
@@ -681,31 +679,37 @@
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">Panjang (cm) <span className="text-red-500">*</span></label>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          Panjang (cm) <span className="text-red-500">*</span>
+                        </label>
                         <input
                           type="number"
-                          value={formData.length}
-                          onChange={(e) => setFormData({ ...formData, length: e.target.value })}
+                          value={formData.panjang}  // ← UBAH dari formData.length
+                          onChange={(e) => setFormData({ ...formData, panjang: e.target.value })}  // ← UBAH
                           className="w-full px-4 py-3 border border-gray-200 rounded-xl"
                           required
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">Lebar (cm) <span className="text-red-500">*</span></label>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          Lebar (cm) <span className="text-red-500">*</span>
+                        </label>
                         <input
                           type="number"
-                          value={formData.width}
-                          onChange={(e) => setFormData({ ...formData, width: e.target.value })}
+                          value={formData.lebar}  // ← UBAH dari formData.width
+                          onChange={(e) => setFormData({ ...formData, lebar: e.target.value })}  // ← UBAH
                           className="w-full px-4 py-3 border border-gray-200 rounded-xl"
                           required
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">Tinggi (cm) <span className="text-red-500">*</span></label>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          Tinggi (cm) <span className="text-red-500">*</span>
+                        </label>
                         <input
                           type="number"
-                          value={formData.height}
-                          onChange={(e) => setFormData({ ...formData, height: e.target.value })}
+                          value={formData.tinggi}  // ← UBAH dari formData.height
+                          onChange={(e) => setFormData({ ...formData, tinggi: e.target.value })}  // ← UBAH
                           className="w-full px-4 py-3 border border-gray-200 rounded-xl"
                           required
                         />

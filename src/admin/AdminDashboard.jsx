@@ -79,7 +79,7 @@ export default function AdminDashboard() {
 
         // Produk & kategori tetap
         const [prodRes, catRes] = await Promise.all([
-          productAPI.getAll({ limit: 10, sort: 'createdAt:desc' }),
+          productAPI.getAll({ limit: 10 }), // Hapus sort parameter
           categoryAPI.getAll(true)
         ]);
 

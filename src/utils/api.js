@@ -54,7 +54,11 @@ export const categoryAPI = {
 };
 
 export const productAPI = {
-  getAll: (params = {}) => api.get('/products', { params }),
+  getAll: (params = {}) => {
+    // Hapus sort dari params jika ada
+    const { sort, ...restParams } = params;
+    return api.get('/products', { params: restParams });
+  },
   getById: (id) => api.get(`/products/${id}`),
   create: (data) => api.post('/products', data),
   update: (id, data) => api.put(`/products/${id}`, data),
